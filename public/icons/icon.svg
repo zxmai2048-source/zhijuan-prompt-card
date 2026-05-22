@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Zhijuan Prompt Card">
+  <rect width="128" height="128" rx="28" fill="#08090d"/>
+  <rect x="18" y="22" width="92" height="84" rx="18" fill="#11131a" stroke="#2b2f3a" stroke-width="4"/>
+  <path d="M34 76l17-20 15 15 13-17 15 22H34z" fill="#ff6f12"/>
+  <circle cx="84" cy="45" r="9" fill="#ffd4b3"/>
+  <path d="M31 92h66" stroke="#ff6f12" stroke-width="6" stroke-linecap="round"/>
+</svg>
