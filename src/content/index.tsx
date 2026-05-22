@@ -70,15 +70,19 @@ async function runSelectionAnalysis(): Promise<void> {
   const selection = await startSelectionOverlay();
   if (!selection) return;
   setPanelState({ open: true, loading: true, error: undefined });
-  const capture = await sendRuntimeMessage<string>({ type: 'CAPTURE_VISIBLE_TAB' });
-  const dataUrl = await cropVisibleScreenshot(capture, selection.rect);
-  lastTarget = {
-    kind: 'selection',
-    dataUrl,
-    pageUrl: location.href,
-    title: document.title || 'Page selection'
-  };
-  await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  try {
+    const capture = await sendRuntimeMessage<string>({ type: 'CAPTURE_VISIBLE_TAB' });
+    const dataUrl = await cropVisibleScreenshot(capture, selection.rect);
+    lastTarget = {
+      kind: 'selection',
+      dataUrl,
+      pageUrl: location.href,
+      title: document.title || 'Page selection'
+    };
+    await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  } catch (error) {
+    setPanelState({ open: true, loading: false, error: errorToMessage(error) });
+  }
 }
 
 async function imageElementToDataUrl(srcUrl: string): Promise<string> {
@@ -112,8 +116,12 @@ function render(): void {
 }
 
 async function copyText(text: string, label: string): Promise<void> {
-  await navigator.clipboard.writeText(text);
-  showNotice(label);
+  try {
+    await writeClipboardText(text);
+    showNotice(label);
+  } catch {
+    showNotice('Copy failed. Select text manually.');
+  }
 }
 
 async function regenerate(): Promise<void> {
@@ -150,6 +158,23 @@ function sendRuntimeMessage<T = unknown>(message: unknown): Promise<T> {
       else resolve(response.data as T);
     });
   });
+}
+
+async function writeClipboardText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0';
+  document.documentElement.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Clipboard write failed.');
 }
 
 function errorToMessage(error: unknown): string {

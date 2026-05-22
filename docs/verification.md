@@ -15,7 +15,9 @@
 - `dist/background.js`: present
 - `dist/content.js`: present
 - Chrome package validation: pass, `Google Chrome --pack-extension="$(pwd)/dist"`
-- Automated command-line unpacked load: not observable in this local Chrome 148 profile; the same `--load-extension` check also failed to expose a trivial test extension, so this is recorded as environment-limited rather than a manifest validation failure.
+- Chrome for Testing unpacked load: pass, extension state `ENABLED`, location `UNPACKED`, no manifest errors.
+- Popup as extension page: pass, default BridgeDeck settings visible.
+- Content script injection on local HTTP page: pass.
 
 ## BridgeDeck
 
@@ -24,6 +26,13 @@
 - Model: `gpt-5.5`
 - Vision request: pass
 - Schema parse through `analyzeImageWithApi`: pass
+- Extension-triggered image analysis through BridgeDeck: pass.
+- Floating panel result render: pass, English prompt/recreation/negative controls visible.
+- Copy button: pass, `Prompt copied` notice shown.
+- Generator open: pass, Gemini tab opened.
+- History after image analysis: pass, one successful local entry.
+- Screenshot selection overlay: pass, full-viewport overlay and drag selection render correctly.
+- Screenshot capture automation note: non-user-gesture automation cannot grant Chrome `activeTab`, so `captureVisibleTab` is manually gated by Chrome. The UI now shows a readable permission error for that path. Real popup/context-menu user gestures are expected to grant `activeTab`.
 
 ## Example Output JSON
 
@@ -47,4 +56,4 @@
 
 ## Known Issues
 
-- Manual Chrome `Load unpacked` still needs a human browser check because this machine's Chrome command-line extension load path did not expose unpacked extensions through CDP.
+- Automated screenshot-capture E2E cannot fully prove `chrome.tabs.captureVisibleTab` without a real extension user gesture; Chrome rejects programmatic non-user-gesture capture with `Either the '<all_urls>' or 'activeTab' permission is required.`

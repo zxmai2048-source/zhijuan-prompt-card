@@ -9,6 +9,10 @@ export function startSelectionOverlay(): Promise<SelectionResult | undefined> {
     const selection = document.createElement('div');
     overlay.className = 'zpc-selection-overlay';
     selection.className = 'zpc-selection-box';
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:2147483646;cursor:crosshair;background:rgba(0,0,0,.52)';
+    selection.style.cssText =
+      'position:fixed;border:2px solid #ff6f12;background:rgba(255,111,18,.12);box-shadow:0 0 0 9999px rgba(0,0,0,.42)';
     overlay.appendChild(selection);
     document.documentElement.appendChild(overlay);
 

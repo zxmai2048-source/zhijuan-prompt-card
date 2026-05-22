@@ -3,7 +3,7 @@ import type { HistoryEntry } from '../shared/types';
 
 export function HistoryView(props: { entries: HistoryEntry[]; onBack: () => void; onRefresh: () => void }) {
   async function copy(text: string) {
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
   }
 
   async function remove(id: string) {
@@ -80,4 +80,21 @@ export function HistoryView(props: { entries: HistoryEntry[]; onBack: () => void
       </section>
     </main>
   );
+}
+
+async function writeClipboardText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0';
+  document.documentElement.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Clipboard write failed.');
 }

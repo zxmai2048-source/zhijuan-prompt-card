@@ -67,7 +67,7 @@ async function installContextMenus(): Promise<void> {
 async function handleRuntimeMessage(message: RuntimeMessage, sender: chrome.runtime.MessageSender): Promise<unknown> {
   switch (message.type) {
     case 'RUN_ANALYSIS': {
-      const tabId = sender.tab?.id || (await getActiveTabId());
+      const tabId = (await resolveTargetTabId(sender)) || (await getActiveTabId());
       if (!tabId) throw new Error('No active tab found.');
       return runAnalysisForTab(tabId, message.payload.target);
     }
@@ -231,6 +231,14 @@ async function testConnection(settings: AppSettings): Promise<{ schema: boolean;
 async function getActiveTabId(): Promise<number | undefined> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab?.id;
+}
+
+async function resolveTargetTabId(sender: chrome.runtime.MessageSender): Promise<number | undefined> {
+  if (sender.tab?.id && !sender.tab.url?.startsWith(chrome.runtime.getURL(''))) return sender.tab.id;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id && !tab.url?.startsWith(chrome.runtime.getURL(''))) return tab.id;
+  const [fallback] = await chrome.tabs.query({ active: true });
+  return fallback?.id;
 }
 
 async function sendToTab(tabId: number, message: unknown): Promise<void> {
