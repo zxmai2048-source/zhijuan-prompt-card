@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zhijuan Prompt Card Panel Harness</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(135deg, rgba(255, 111, 18, 0.14), transparent 32%),
+          linear-gradient(180deg, #141820, #07080c);
+        color: #f7f3ee;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .mock-page {
+        width: min(820px, calc(100vw - 48px));
+        padding: 48px 24px;
+      }
+
+      .mock-page h1 {
+        margin: 0;
+        font-size: 44px;
+        letter-spacing: 0;
+      }
+
+      .mock-page p {
+        width: 560px;
+        max-width: 100%;
+        color: #aeb4c2;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock-page">
+      <h1>Reference Image Page</h1>
+      <p>Harness page for rendering the injected floating panel during local visual verification.</p>
+    </main>
+
+    <script>
+      let listener;
+      window.chrome = {
+        runtime: {
+          lastError: undefined,
+          onMessage: { addListener(fn) { listener = fn; } },
+          sendMessage(_message, callback) { callback && callback({ ok: true, data: {} }); }
+        }
+      };
+    </script>
+    <script src="../dist/content.js"></script>
+    <script>
+      const mode = new URLSearchParams(location.search).get('mode') || 'result';
+      const sampleAnalysis = {
+        zh: {
+          prompt: '一张深色棚拍产品图，主体是一张橙色高光边缘的提示词卡片，置于黑色磨砂桌面上，周围有柔和反光与细微颗粒质感，画面采用近景俯拍构图，背景保持简洁压暗，突出卡片上的图像分析工作流和本地优先的工具气质。',
+          analysis: '画面依靠低调光、橙色强调和紧凑构图建立高级工具感。'
+        },
+        en: {
+          prompt: 'A polished dark product-style interface shot showing a compact prompt analysis card on a matte black desk, edged with warm orange highlights, soft reflections, subtle grain, and carefully spaced UI sections. The composition is a close three-quarter top view with the card dominant in the frame, a restrained background, crisp borders, premium shadows, and a focused local-first creative tool mood.',
+          analysis: 'The image relies on low-key lighting, orange accent color, compact UI hierarchy, and a premium software-tool composition.'
+        },
+        ja: {
+          prompt: '暗いマットな机の上に、オレンジのアクセントで縁取られたプロンプト解析カードが置かれた上質なプロダクトUI風の画像。柔らかな反射、控えめな粒状感、整理された情報ブロック、近距離の斜め俯瞰構図で、ローカル優先の制作ツールらしい集中感を出している。',
+          analysis: '低照度、オレンジの強調、整ったカード構成で高級なツール感を作っている。'
+        },
+        zh_style_tags: ['暗色高级', '橙色强调', '工具界面', '柔和反光'],
+        en_style_tags: ['dark premium', 'orange accent', 'tool UI', 'soft reflection'],
+        ja_style_tags: ['暗色高級', '橙色アクセント', 'ツールUI', '柔らかい反射'],
+        json_prompt: {
+          subject: 'Compact prompt analysis card interface',
+          action_pose: 'Card presented as a focused local-first tool surface',
+          details_appearance: 'Dark cards, orange active controls, pill tags, copy actions, generator buttons',
+          environment_background: 'Matte black desk and restrained software backdrop',
+          lighting_atmosphere: 'Low-key soft lighting with warm orange edge highlights',
+          composition_framing: 'Right-side floating panel, close UI framing, dense readable hierarchy',
+          style_camera: 'Premium SaaS tool screenshot with product photography polish',
+          colors: ['near black', 'warm orange', 'soft ivory'],
+          materials: ['matte glass', 'soft shadow', 'digital UI'],
+          aspect_ratio: '4:5',
+          quality_modifiers: ['premium UI', 'compact cards', 'sharp text', 'soft shadow'],
+          likely_generation_intent: 'Show a refined local-first image prompt extension'
+        },
+        recreation_prompt:
+          'A premium dark software interface screenshot showing a compact image-to-prompt analysis panel, near-black background, warm orange accent buttons, softly bordered cards, pill-shaped style tags, copy actions, generator handoff buttons, crisp typography, subtle shadows, and a polished local-first creative tool atmosphere.',
+        prompt_core:
+          'Premium dark image prompt analysis panel, orange accent, compact cards, pill tags, local-first creative tool UI.',
+        negative_prompt: 'blurry text, cluttered layout, low contrast, harsh glow, broken UI, random icons, noisy background'
+      };
+
+      function send(type, payload) {
+        listener && listener({ type, payload }, {}, () => {});
+      }
+
+      setTimeout(() => {
+        if (mode === 'loading') {
+          send('ANALYSIS_STARTED', {
+            target: { kind: 'selection', title: 'Harness selection' },
+            entry: { id: 'loading', createdAt: new Date().toISOString(), title: 'Running', favorite: false, status: 'running' }
+          });
+        } else {
+          send('ANALYSIS_RESULT', {
+            target: { kind: 'image', title: 'Harness image' },
+            entry: {
+              id: 'result',
+              createdAt: new Date().toISOString(),
+              title: 'Compact prompt analysis card interface',
+              favorite: false,
+              status: 'success',
+              analysis: sampleAnalysis
+            }
+          });
+        }
+      }, 120);
+    </script>
+  </body>
+</html>

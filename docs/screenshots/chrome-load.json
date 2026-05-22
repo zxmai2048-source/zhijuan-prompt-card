@@ -1,0 +1,29 @@
+{
+  "extensionLoaded": false,
+  "manifestName": "",
+  "extensionTargets": [
+    {
+      "targetId": "F759B456BF841F8F3707E2AA94EEF79C",
+      "type": "service_worker",
+      "title": "Service Worker chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js",
+      "url": "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js",
+      "attached": false,
+      "canAccessOpener": false,
+      "browserContextId": "A37C78201931BB528FCDF3AAD7571889"
+    },
+    {
+      "targetId": "58D54186FD0F3669E250CE94932EC65D",
+      "type": "background_page",
+      "title": "Google Hangouts",
+      "url": "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/background.html",
+      "attached": false,
+      "canAccessOpener": false,
+      "browserContextId": "A37C78201931BB528FCDF3AAD7571889"
+    }
+  ],
+  "popupText": "ZHIJUAN PROMPT CARD\n\nLocal image prompt analysis\ngpt-5.5\nLocal API\n127.0.0.1:8876\n\nReady\n\nAnalyze screenshot\nHistory\nSettings\nBase URL\nAPI Key\nModel\nDefault generator\njimeng\ngemini\nmidjourney\nlovart\nS",
+  "settingsText": "ZHIJUAN PROMPT CARD\n\nSettings\nReady\nEnabled\nBase URL\nAPI Key\nModel\nInterface language\n中文\nEnglish\n日本語\nDefault generator\njimeng\ngemini\nmidjourney\nlovart\nSave\nSave and test\nImages are sent only to the co",
+  "historyText": "Back\n\nHISTORY\n\n0 local entries\nRefresh\nClear all\nNo history yet",
+  "stderr": "\nDevTools listening on ws://127.0.0.1:9562/devtools/browser/cde2cc61-d9ad-4d5a-90bf-c518d7042f4f\nTrying to load the allocator multiple times. This is *not* supported.\n[98467:3644816:0523/024941.764423:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT\n",
+  "serverErr": "127.0.0.1 - - [23/May/2026 02:49:36] \"GET /dist/popup.html HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:39] \"GET /dist/popup.html HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:39] \"GET /dist/assets/jsx-runtime.js HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:39] \"GET /dist/assets/popup.css HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:39] \"GET /dist/assets/popup.js HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:39] code 404, message File not found\n127.0.0.1 - - [23/May/2026 02:49:39] \"GET /favicon.ico HTTP/1.1\" 404 -\n127.0.0.1 - - [23/May/2026 02:49:41] \"GET /dist/options.html HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:41] \"GET /dist/assets/options.js HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:41] \"GET /dist/assets/options.css HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:45] \"GET /docs/screenshot-harness.html?mode=loading HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:45] \"GET /dist/content.js HTTP/1.1\" 200 -\n127.0.0.1 - - [23/May/2026 02:49:47] \"GET /docs/screenshot-harness.html?mode=result HTTP/1.1\" 200 -\n"
+}

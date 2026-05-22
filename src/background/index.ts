@@ -21,7 +21,7 @@ type RuntimeMessage =
 
 const MENU_ID = 'zhijuan-analyze-image';
 const RED_TEST_IMAGE =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/lw9q4wAAAABJRU5ErkJggg==';
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAEklEQVR4nGP4z8DwHxkzkC4AADxAH+HggXe0AAAAAElFTkSuQmCC';
 
 chrome.runtime.onInstalled.addListener(() => {
   void installContextMenus();
