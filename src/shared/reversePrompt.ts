@@ -21,7 +21,7 @@ Return this exact JSON shape:
   "en_style_tags": ["english tag 1", "english tag 2"],
   "ja_style_tags": ["japanese tag 1", "japanese tag 2"],
   "json_prompt": {
-    "subject": "Main subject with count, type, scale, identity category and the most visually important attributes.",
+    "subject": "Main subject with count, type, scale, subject category and the most visually important attributes.",
     "action_pose": "Action, pose, gesture, gaze, orientation, body language or object placement.",
     "details_appearance": "Specific visible details, clothing, anatomy, props, accessories, markings, silhouette, condition or design cues.",
     "environment_background": "Environment, set, backdrop, foreground/midground/background relationship, depth cues and surrounding objects.",
@@ -49,7 +49,7 @@ Rules:
 - Each zh.prompt, en.prompt and ja.prompt must be detailed enough for image recreation: target 90 to 150 English words or equivalent density in the target language.
 - recreation_prompt must be the most complete output: target 130 to 220 English words in one polished line.
 - Describe visible foreground, midground and background relationships when present.
-- Capture subject count, identity category, pose, gesture, gaze, expression, clothing or object design, materials, textures, surface finish, weathering, and small distinctive details.
+- Capture subject count, subject category, pose, gesture, gaze, expression, clothing or object design, materials, textures, surface finish, weathering, and small distinctive details.
 - For magazine, poster or ad layouts, always describe the masthead/title text, main title position, top/side/bottom small text, barcode/price/date blocks, subject-to-title overlap, subject scale, background architecture or scene layers, clothing material, makeup/hair, lighting and color system when visible.
 - Race/ethnicity cue and skin tone are mandatory for every visible human subject. If visually supported, use direct prompt-ready wording such as "a white woman with fair skin", "a light-skinned Caucasian-looking female model", "a Black woman with deep brown skin", "an East Asian woman with fair skin", or "a brown-skinned South Asian-looking man". If race/ethnicity is genuinely unclear, explicitly state "race/ethnicity not clearly identifiable" but still describe skin tone and hair.
 - Capture lighting direction, shadow softness, contrast, color temperature, atmosphere, depth, lens feel, camera angle, shot distance, crop, focal emphasis, and aspect ratio.
