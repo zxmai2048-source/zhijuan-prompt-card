@@ -11,13 +11,15 @@ type UiLanguage = 'zh' | 'en';
 const popupCopy = {
   en: {
     title: 'Zhijuan Prompt',
-    subtitle: 'Local image prompt analysis',
+    subtitle: 'Image prompt workbench',
     ready: 'Ready',
     saved: 'Saved',
     testing: 'Testing',
     localApi: 'Local API',
     pickImage: 'Pick page image',
     captureArea: 'Capture region',
+    pickHint: 'Click an image, then read the prompt in the floating panel.',
+    captureHint: 'Drag a screen region, then inspect the generated prompt.',
     resultPanel: 'Result panel',
     resultPanelBody: 'Floating panel',
     history: 'History',
@@ -32,13 +34,15 @@ const popupCopy = {
   },
   zh: {
     title: 'Zhijuan Prompt',
-    subtitle: '本地图片提示词识别',
+    subtitle: '图片提示词工作台',
     ready: '准备就绪',
     saved: '已保存',
     testing: '测试中',
     localApi: '本地 API',
     pickImage: '选择网页图片',
     captureArea: '截取屏幕区域',
+    pickHint: '点击页面图片，提示词会在浮动面板里生成。',
+    captureHint: '拖拽框选区域，结果同样回到浮动面板。',
     resultPanel: '结果面板',
     resultPanelBody: '右侧浮动面板',
     history: '历史',
@@ -150,11 +154,11 @@ export function App() {
       <section className="action-card">
         <button type="button" className="primary action-button" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
           <strong>{labels.pickImage}</strong>
-          <span>{labels.resultPanelBody}</span>
+          <span>{labels.pickHint}</span>
         </button>
         <button type="button" className="action-button" onClick={() => void sendActiveTabCommand('START_SELECTION')}>
           <strong>{labels.captureArea}</strong>
-          <span>{labels.resultPanelBody}</span>
+          <span>{labels.captureHint}</span>
         </button>
       </section>
 

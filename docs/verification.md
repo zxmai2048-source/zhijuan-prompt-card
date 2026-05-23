@@ -18,6 +18,8 @@
 - Chrome for Testing unpacked load: pass, extension state `ENABLED`, location `UNPACKED`, no manifest errors.
 - Popup as extension page: pass, default BridgeDeck settings visible.
 - Content script injection on local HTTP page: pass.
+- UI redesign board render: pass, `docs/ui-redesign/component-board.html`
+- Content panel redesign harness render: pass, `docs/screenshot-harness.html?mode=result`
 
 ## BridgeDeck
 
@@ -54,7 +56,9 @@
 - `docs/screenshots/loading-panel.png`
 - `docs/screenshots/result-panel.png`
 - `docs/screenshots/chrome-load.json`
+- `docs/screenshots/ui-redesign-board.png`
+- `docs/screenshots/ui-redesign-panel-harness.png`
 
 ## Known Issues
 
-- No known blocking issues in the verified local workflow.
+- Chrome does not auto-refresh unpacked extensions after rebuild. Use the refresh icon on `chrome://extensions`.

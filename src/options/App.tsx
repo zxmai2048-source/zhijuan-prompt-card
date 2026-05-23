@@ -7,11 +7,18 @@ import type { AppSettings, InterfaceLanguage, RuntimeResponse } from '../shared/
 const optionsCopy = {
   en: {
     title: 'Zhijuan Prompt',
-    settings: 'Settings',
+    settings: 'API Settings',
+    subtitle: 'Connection and generator defaults live here, away from the daily popup.',
     ready: 'Ready',
     saved: 'Saved',
     testing: 'Testing',
     enabled: 'Enabled',
+    endpointSection: 'Endpoint',
+    endpointBody: 'The extension sends selected images only to this API endpoint.',
+    generationSection: 'Generation',
+    generationBody: 'Model and destination used after a prompt is produced.',
+    interfaceSection: 'Interface',
+    interfaceBody: 'Language and extension state.',
     baseUrl: 'Base URL',
     apiKey: 'API Key',
     model: 'Model',
@@ -27,11 +34,18 @@ const optionsCopy = {
   },
   zh: {
     title: 'Zhijuan Prompt',
-    settings: '设置',
+    settings: 'API 设置',
+    subtitle: '连接、模型、默认生成器放在这里，日常弹窗只保留操作入口。',
     ready: '准备就绪',
     saved: '已保存',
     testing: '测试中',
     enabled: '启用',
+    endpointSection: '连接端点',
+    endpointBody: '插件只会把你主动选择的图片发送到这个 API 端点。',
+    generationSection: '生成配置',
+    generationBody: '识别完成后默认使用的模型与生成器入口。',
+    interfaceSection: '界面',
+    interfaceBody: '语言和扩展启用状态。',
     baseUrl: 'Base URL',
     apiKey: 'API Key',
     model: 'Model',
@@ -81,61 +95,93 @@ export function OptionsApp() {
     <main className="options-shell">
       <section className="settings-panel">
         <header>
-          <p>{labels.title}</p>
-          <h1>{labels.settings}</h1>
+          <div>
+            <p>{labels.title}</p>
+            <h1>{labels.settings}</h1>
+            <small>{labels.subtitle}</small>
+          </div>
           <span>{status}</span>
         </header>
 
-        <label>
-          {labels.enabled}
-          <input
-            type="checkbox"
-            checked={settings.enabled}
-            onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })}
-          />
-        </label>
-        <label>
-          {labels.baseUrl}
-          <input value={settings.baseUrl} onChange={(event) => setSettings({ ...settings, baseUrl: event.target.value })} />
-        </label>
-        <label>
-          {labels.apiKey}
-          <input
-            type="password"
-            value={settings.apiKey}
-            onChange={(event) => setSettings({ ...settings, apiKey: event.target.value })}
-          />
-        </label>
-        <label>
-          {labels.model}
-          <input value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} />
-        </label>
-        <label>
-          {labels.language}
-          <select
-            value={settings.interfaceLanguage}
-            onChange={(event) => setSettings({ ...settings, interfaceLanguage: event.target.value as AppSettings['interfaceLanguage'] })}
-          >
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-          </select>
-        </label>
-        <label>
-          {labels.defaultGenerator}
-          <select
-            value={settings.defaultGeneratorSite}
-            onChange={(event) =>
-              setSettings({ ...settings, defaultGeneratorSite: event.target.value as AppSettings['defaultGeneratorSite'] })
-            }
-          >
-            {GENERATOR_SITE_IDS.map((site) => (
-              <option key={site} value={site}>
-                {GENERATOR_SITES[site].label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="settings-section">
+          <div className="section-copy">
+            <span>01</span>
+            <h2>{labels.endpointSection}</h2>
+            <p>{labels.endpointBody}</p>
+          </div>
+          <div className="field-grid">
+            <label>
+              {labels.baseUrl}
+              <input value={settings.baseUrl} onChange={(event) => setSettings({ ...settings, baseUrl: event.target.value })} />
+            </label>
+            <label>
+              {labels.apiKey}
+              <input
+                type="password"
+                value={settings.apiKey}
+                onChange={(event) => setSettings({ ...settings, apiKey: event.target.value })}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <div className="section-copy">
+            <span>02</span>
+            <h2>{labels.generationSection}</h2>
+            <p>{labels.generationBody}</p>
+          </div>
+          <div className="field-grid">
+            <label>
+              {labels.model}
+              <input value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} />
+            </label>
+            <label>
+              {labels.defaultGenerator}
+              <select
+                value={settings.defaultGeneratorSite}
+                onChange={(event) =>
+                  setSettings({ ...settings, defaultGeneratorSite: event.target.value as AppSettings['defaultGeneratorSite'] })
+                }
+              >
+                {GENERATOR_SITE_IDS.map((site) => (
+                  <option key={site} value={site}>
+                    {GENERATOR_SITES[site].label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="settings-section settings-section--compact">
+          <div className="section-copy">
+            <span>03</span>
+            <h2>{labels.interfaceSection}</h2>
+            <p>{labels.interfaceBody}</p>
+          </div>
+          <div className="field-grid">
+            <label>
+              {labels.language}
+              <select
+                value={settings.interfaceLanguage}
+                onChange={(event) => setSettings({ ...settings, interfaceLanguage: event.target.value as AppSettings['interfaceLanguage'] })}
+              >
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+              </select>
+            </label>
+            <label className="toggle-row">
+              <span>{labels.enabled}</span>
+              <input
+                type="checkbox"
+                checked={settings.enabled}
+                onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })}
+              />
+            </label>
+          </div>
+        </div>
 
         <div className="button-row">
           <button type="button" onClick={() => void save()}>

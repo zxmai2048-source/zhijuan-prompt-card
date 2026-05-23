@@ -8,13 +8,14 @@ No login. No credits. No cloud. No telemetry.
 
 ## Features
 
+- Popup command surface for picking a page image or capturing a screen region.
 - Right-click image analysis.
 - Screenshot region analysis.
 - Floating prompt panel with EN, Chinese, JSON, negative prompt, tags, and recreation prompt.
-- Popup settings for Base URL, API key, model, history, and connection test.
+- Dedicated options page for Base URL, API key, model, default generator, language, and connection test.
 - Local history in `chrome.storage.local`, capped at 120 entries.
 - Copy prompt, copy JSON, copy negative prompt.
-- Copy and open Jimeng, Gemini, Midjourney, or Lovart.
+- Copy and open ChatGPT, Codex, Jimeng, Gemini, Midjourney, or Lovart.
 
 ## Local Build
 
@@ -25,6 +26,8 @@ npm run build
 ```
 
 Load `dist/` with Chrome `Load unpacked`.
+
+After rebuilding an already-loaded unpacked extension, open `chrome://extensions` and click refresh on `Zhijuan Prompt Card`.
 
 ## Default API
 

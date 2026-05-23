@@ -5,11 +5,11 @@
   --zpc-glass: rgba(16, 22, 34, 0.58);
   --zpc-glass-strong: rgba(18, 25, 39, 0.74);
   --zpc-line: rgba(255, 255, 255, 0.13);
-  --zpc-line-hot: rgba(111, 241, 255, 0.34);
+  --zpc-line-hot: rgba(116, 224, 230, 0.34);
   --zpc-text: #f7fbff;
   --zpc-muted: #aab6c7;
-  --zpc-cyan: #6ff1ff;
-  --zpc-orange: #f5a14a;
+  --zpc-cyan: #74e0e6;
+  --zpc-orange: #c99a63;
   --zpc-danger: #ff7272;
   --zpc-good: #75f2bf;
   --zpc-ink: #05070c;
@@ -80,8 +80,8 @@
   border: 1px solid var(--zpc-line);
   border-radius: 20px;
   background:
-    radial-gradient(circle at 14% 0%, rgba(111, 241, 255, 0.14), transparent 34%),
-    radial-gradient(circle at 96% 18%, rgba(245, 161, 74, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(111, 241, 255, 0.11), transparent 38%),
+    linear-gradient(215deg, rgba(245, 161, 74, 0.09), transparent 42%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035) 34%, rgba(111, 241, 255, 0.045)),
     var(--zpc-bg);
   color: var(--zpc-text);
