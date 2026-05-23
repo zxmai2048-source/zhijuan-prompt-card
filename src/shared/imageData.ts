@@ -5,6 +5,15 @@ export async function urlToDataUrl(url: string): Promise<string> {
   return blobToDataUrl(await response.blob());
 }
 
+export async function fileToDataUrl(file: File): Promise<string> {
+  if (!isImageFile(file)) throw new Error('Only image files are supported.');
+  return blobToDataUrl(file);
+}
+
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/') || /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(file.name);
+}
+
 export async function resizeDataUrl(input: string, maxSide = 2200, quality = 0.9): Promise<string> {
   if (typeof createImageBitmap === 'undefined' || typeof OffscreenCanvas === 'undefined') return input;
 

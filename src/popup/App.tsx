@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type DragEvent as ReactDragEvent, type ChangeEvent as ReactChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../shared/defaults';
 import { GENERATOR_SITES } from '../shared/generators';
+import { fileToDataUrl, isImageFile } from '../shared/imageData';
 import { getSettings, saveSettings, getHistory } from '../shared/storage';
 import type { AppSettings, HistoryEntry, InterfaceLanguage, RuntimeResponse } from '../shared/types';
 import { HistoryView } from './HistoryView';
@@ -18,8 +19,12 @@ const popupCopy = {
     localApi: 'Local API',
     pickImage: 'Pick image',
     captureArea: 'Capture',
+    localFile: 'Local',
     pickHint: 'Selected image enters the lens.',
     captureHint: 'Captured region enters the result lens.',
+    dropHint: 'Drop local image here',
+    dropActive: 'Release to analyze',
+    invalidFile: 'Only image files are supported.',
     resultPanel: 'Result lens',
     resultPanelBody: 'Source preview and prompt output',
     history: 'History',
@@ -44,8 +49,12 @@ const popupCopy = {
     localApi: '本地 API',
     pickImage: '选图识别',
     captureArea: '框选',
+    localFile: '本地',
     pickHint: '选图后进入结果镜头。',
     captureHint: '截取区域会进入结果镜头。',
+    dropHint: '本地图片拖到这里',
+    dropActive: '松手识别',
+    invalidFile: '只支持图片文件。',
     resultPanel: '结果镜头',
     resultPanelBody: '源图预览 + 提示词输出',
     history: '历史',
@@ -68,6 +77,8 @@ export function App() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [status, setStatus] = useState<string>(popupCopy.zh.ready);
   const [view, setView] = useState<ViewMode>('home');
+  const [fileDragActive, setFileDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const language = normalizeLanguage(settings.interfaceLanguage);
   const labels = popupCopy[language];
 
@@ -105,10 +116,67 @@ export function App() {
   }
 
   async function sendActiveTabCommand(type: 'START_SELECTION' | 'START_IMAGE_PICK') {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab.id) return;
-    void chrome.tabs.sendMessage(tab.id, { type }).catch(() => undefined);
-    window.close();
+    try {
+      const tab = await getActivePageTab();
+      if (!tab?.id) {
+        setStatus(labels.activeTab);
+        return;
+      }
+      await sendTabMessageWithInjection(tab.id, { type });
+      window.close();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function analyzeLocalFile(file: File | undefined) {
+    if (!file) return;
+    if (!isImageFile(file)) {
+      setStatus(labels.invalidFile);
+      return;
+    }
+    setStatus(labels.testing);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      await sendRuntimeMessage({
+        type: 'RUN_ANALYSIS',
+        payload: {
+          target: {
+            kind: 'local',
+            dataUrl,
+            title: file.name,
+            pageUrl: `local-file:${file.name}`
+          }
+        }
+      });
+      setStatus(labels.saved);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  function handleFileChange(event: ReactChangeEvent<HTMLInputElement>) {
+    void analyzeLocalFile(firstImageFile(event.currentTarget.files));
+    event.currentTarget.value = '';
+  }
+
+  function handleFileDrag(event: ReactDragEvent<HTMLElement>) {
+    if (!hasFileDrag(event.dataTransfer)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setFileDragActive(true);
+  }
+
+  function handleFileDragLeave(event: ReactDragEvent<HTMLElement>) {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setFileDragActive(false);
+  }
+
+  function handleFileDrop(event: ReactDragEvent<HTMLElement>) {
+    if (!hasFileDrag(event.dataTransfer)) return;
+    event.preventDefault();
+    setFileDragActive(false);
+    void analyzeLocalFile(firstImageFile(event.dataTransfer.files));
   }
 
   async function changeLanguage(interfaceLanguage: InterfaceLanguage) {
@@ -123,6 +191,7 @@ export function App() {
 
   return (
     <main className="app-shell">
+      <input ref={fileInputRef} className="file-input" type="file" accept="image/*" onChange={handleFileChange} />
       <header className="microbar">
         <div className="brand">
           <p>{labels.title}</p>
@@ -138,14 +207,21 @@ export function App() {
         </div>
       </header>
 
-      <section className="command-puck" aria-label={labels.dockLabel}>
+      <section
+        className={fileDragActive ? 'command-puck is-drop-active' : 'command-puck'}
+        aria-label={labels.dockLabel}
+        onDragEnter={handleFileDrag}
+        onDragOver={handleFileDrag}
+        onDragLeave={handleFileDragLeave}
+        onDrop={handleFileDrop}
+      >
         <button type="button" className="orbit-action orbit-action--secondary" onClick={() => void sendActiveTabCommand('START_SELECTION')}>
           <IconCrop />
           <span>{labels.captureArea}</span>
         </button>
         <div className="puck-core">
           <span>{labels.subtitle}</span>
-          <strong>{labels.pickHint}</strong>
+          <strong>{fileDragActive ? labels.dropActive : labels.dropHint}</strong>
         </div>
         <button type="button" className="orbit-action orbit-action--primary" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
           <IconImage />
@@ -171,6 +247,10 @@ export function App() {
           <IconHistory />
           <span>{history.length}</span>
         </button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}>
+          <IconUpload />
+          <span>{labels.localFile}</span>
+        </button>
         <button type="button" onClick={() => chrome.runtime.openOptionsPage()}>
           <IconSettings />
           <span>{labels.settings}</span>
@@ -182,6 +262,15 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function firstImageFile(files: FileList | null): File | undefined {
+  if (!files) return undefined;
+  return [...files].find(isImageFile);
+}
+
+function hasFileDrag(dataTransfer: DataTransfer): boolean {
+  return [...dataTransfer.types].includes('Files');
 }
 
 function normalizeLanguage(language: InterfaceLanguage): UiLanguage {
@@ -201,6 +290,35 @@ function sendRuntimeMessage<T>(message: unknown): Promise<T> {
   });
 }
 
+async function sendTabMessageWithInjection(tabId: number, message: unknown): Promise<void> {
+  try {
+    await chrome.tabs.sendMessage(tabId, message);
+    return;
+  } catch {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+    await chrome.tabs.sendMessage(tabId, message);
+  }
+}
+
+async function getActivePageTab(): Promise<chrome.tabs.Tab | undefined> {
+  const focusedWindow = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] });
+  const focusedTab = focusedWindow.tabs?.find((tab) => tab.active && isPageTab(tab));
+  if (focusedTab) return focusedTab;
+
+  const currentWindowTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const currentWindowTab = currentWindowTabs.find(isPageTab);
+  if (currentWindowTab) return currentWindowTab;
+
+  const activeTabs = await chrome.tabs.query({ active: true });
+  return activeTabs.find(isPageTab);
+}
+
+function isPageTab(tab: chrome.tabs.Tab): boolean {
+  if (!tab.id) return false;
+  const url = tab.url || tab.pendingUrl || '';
+  return /^https?:\/\//.test(url) || /^file:\/\//.test(url);
+}
+
 function IconImage() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -216,6 +334,16 @@ function IconCrop() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M7 3.8v11.4c0 1 .8 1.8 1.8 1.8h11.4" />
       <path d="M3.8 7H15c1.1 0 2 .9 2 2v11.2" />
+    </svg>
+  );
+}
+
+function IconUpload() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 16V4.8" />
+      <path d="m7.6 9.2 4.4-4.4 4.4 4.4" />
+      <path d="M5.2 15.2v2.6c0 .9.7 1.6 1.6 1.6h10.4c.9 0 1.6-.7 1.6-1.6v-2.6" />
     </svg>
   );
 }

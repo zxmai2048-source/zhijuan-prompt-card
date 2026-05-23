@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { cropVisibleScreenshot, renderVisibleRegionFallback, startImagePicker, startSelectionOverlay } from './selectionOverlay';
 import { Panel, type PanelState } from './panel';
 import panelCss from './panel.css';
+import { fileToDataUrl, isImageFile } from '../shared/imageData';
 import { getSettings, saveSettings } from '../shared/storage';
 import type { GeneratorSite, ImageTarget, InterfaceLanguage, RuntimeResponse } from '../shared/types';
 
@@ -25,6 +26,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 function ensurePanelRoot(): void {
   if (root) return;
+  document.getElementById('zhijuan-prompt-root')?.remove();
   const host = document.createElement('div');
   host.id = 'zhijuan-prompt-root';
   const shadow = host.attachShadow({ mode: 'open' });
@@ -166,6 +168,7 @@ function render(): void {
       onLanguageChange={(language) => void changeInterfaceLanguage(language)}
       onStartAreaSelect={() => void runSelectionAnalysis()}
       onStartImagePick={() => void runImagePickAnalysis()}
+      onAnalyzeFile={(file) => void runLocalFileAnalysis(file)}
       onOpenSettings={() => void openSettings()}
       onCopy={(text, label) => void copyText(text, label)}
       onRegenerate={() => void regenerate()}
@@ -173,6 +176,27 @@ function render(): void {
       onToggleFavorite={(id, favorite) => void toggleFavorite(id, favorite)}
     />
   );
+}
+
+async function runLocalFileAnalysis(file: File): Promise<void> {
+  if (!isImageFile(file)) {
+    setPanelState({ open: true, loading: false, error: 'Only image files are supported.', picking: undefined });
+    return;
+  }
+  setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: undefined, notice: undefined, picking: undefined });
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    lastTarget = {
+      kind: 'local',
+      dataUrl,
+      pageUrl: `local-file:${file.name}`,
+      title: file.name || 'Local image'
+    };
+    setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: lastTarget, notice: undefined, picking: undefined });
+    await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  } catch (error) {
+    setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
+  }
 }
 
 async function changeInterfaceLanguage(language: InterfaceLanguage): Promise<void> {

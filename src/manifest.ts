@@ -4,7 +4,7 @@ const manifest = {
   description: 'Local-first image to prompt reverse prompt tool.',
   version: '0.1.0',
   permissions: ['contextMenus', 'storage', 'scripting', 'activeTab', 'clipboardWrite'],
-  host_permissions: ['http://127.0.0.1/*', 'http://localhost/*', 'https://*/*', 'http://*/*'],
+  host_permissions: ['http://127.0.0.1/*', 'http://localhost/*', 'https://*/*', 'http://*/*', 'file:///*'],
   background: { service_worker: 'background.js', type: 'module' },
   action: {
     default_title: 'Zhijuan Prompt Card',
@@ -19,7 +19,7 @@ const manifest = {
   },
   content_scripts: [
     {
-      matches: ['http://*/*', 'https://*/*'],
+      matches: ['http://*/*', 'https://*/*', 'file:///*'],
       js: ['content.js'],
       run_at: 'document_idle',
       all_frames: false

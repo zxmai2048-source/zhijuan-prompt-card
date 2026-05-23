@@ -1,4 +1,4 @@
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, PanelTab, PromptAnalysis } from '../shared/types';
 import { GENERATOR_SITES } from '../shared/generators';
 
@@ -20,6 +20,7 @@ export interface PanelProps {
   onLanguageChange: (language: InterfaceLanguage) => void;
   onStartAreaSelect: () => void;
   onStartImagePick: () => void;
+  onAnalyzeFile: (file: File) => void;
   onOpenSettings: () => void;
   onCopy: (text: string, label: string) => void;
   onRegenerate: () => void;
@@ -37,10 +38,12 @@ const copy = {
     analysis: 'Prompt analysis',
     pickImage: 'Pick image',
     captureArea: 'Capture area',
+    localFile: 'Local file',
     pickingImage: 'Click a page image',
     pickingSelection: 'Drag a region',
     pickingBody: 'The selected source and prompt will appear in this panel.',
     sourceImage: 'Selected source',
+    sourceLocal: 'Local image',
     sourceArea: 'Captured region',
     sourcePage: 'Page source',
     sourceReady: 'Source ready',
@@ -48,7 +51,10 @@ const copy = {
     qualityReady: 'ready',
     qualityBuilding: 'building',
     chooseTitle: 'Choose an image source',
-    chooseBody: 'Pick a page image or drag a region. The selected source appears above the prompt output.',
+    chooseBody: 'Pick a page image, capture a region, or drop a local image file here.',
+    dropTitle: 'Drop image file',
+    dropBody: 'Drag PNG, JPG, WebP, GIF, AVIF, or BMP from Finder.',
+    dropActive: 'Release to analyze',
     loadingSteps: ['Reading the image', 'Extracting visual style', 'Building your prompt'],
     failed: 'Analysis failed',
     output: 'Prompt output',
@@ -76,10 +82,12 @@ const copy = {
     analysis: '提示词分析',
     pickImage: '选择图片',
     captureArea: '截取区域',
+    localFile: '本地文件',
     pickingImage: '点击网页图片',
     pickingSelection: '拖拽截取区域',
     pickingBody: '选中的图片和生成的提示词会显示在这个面板里。',
     sourceImage: '已选图片',
+    sourceLocal: '本地图片',
     sourceArea: '截取区域',
     sourcePage: '页面来源',
     sourceReady: '来源就绪',
@@ -87,7 +95,10 @@ const copy = {
     qualityReady: '就绪',
     qualityBuilding: '生成中',
     chooseTitle: '选择图片源',
-    chooseBody: '点选网页图片或拖拽区域，源图会显示在上方，提示词会显示在输出区。',
+    chooseBody: '点网页图片、截取区域，或把本地图片文件拖到这里。',
+    dropTitle: '拖入图片文件',
+    dropBody: '支持从 Finder 拖入 PNG、JPG、WebP、GIF、AVIF、BMP。',
+    dropActive: '松手开始识别',
     loadingSteps: ['读取图片', '提取视觉风格', '生成提示词'],
     failed: '识别失败',
     output: '提示词输出',
@@ -117,6 +128,38 @@ export function Panel(props: PanelProps) {
   const analysis = state.entry?.analysis;
   const activeTab = usePreferredTab(analysis, language);
   const chrome = usePanelChrome();
+  const loadingProgress = useLoadingProgress(state.loading);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileDragActive, setFileDragActive] = useState(false);
+
+  function analyzeFile(file: File | undefined) {
+    if (!file) return;
+    setFileDragActive(false);
+    props.onAnalyzeFile(file);
+  }
+
+  function handleFileChange(event: ReactChangeEvent<HTMLInputElement>) {
+    analyzeFile(firstImageFile(event.currentTarget.files));
+    event.currentTarget.value = '';
+  }
+
+  function handleFileDrag(event: ReactDragEvent<HTMLElement>) {
+    if (!hasFileDrag(event.dataTransfer)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setFileDragActive(true);
+  }
+
+  function handleFileDragLeave(event: ReactDragEvent<HTMLElement>) {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setFileDragActive(false);
+  }
+
+  function handleFileDrop(event: ReactDragEvent<HTMLElement>) {
+    if (!hasFileDrag(event.dataTransfer)) return;
+    event.preventDefault();
+    analyzeFile(firstImageFile(event.dataTransfer.files));
+  }
 
   if (!state.open) {
     return null;
@@ -128,6 +171,10 @@ export function Panel(props: PanelProps) {
       aria-live="polite"
       data-state={state.loading ? 'loading' : analysis ? 'result' : state.error ? 'error' : 'ready'}
       style={{ left: chrome.position.x, top: chrome.position.y }}
+      onDragEnter={handleFileDrag}
+      onDragOver={handleFileDrag}
+      onDragLeave={handleFileDragLeave}
+      onDrop={handleFileDrop}
     >
       <div className="zpc-panel__edge" />
       <header
@@ -170,6 +217,14 @@ export function Panel(props: PanelProps) {
 
       {!chrome.collapsed ? (
         <div className="zpc-panel__body">
+          <input ref={fileInputRef} className="zpc-file-input" type="file" accept="image/*" onChange={handleFileChange} />
+          {fileDragActive ? (
+            <div className="zpc-drop-overlay">
+              <IconUpload />
+              <strong>{labels.dropActive}</strong>
+              <span>{labels.dropBody}</span>
+            </div>
+          ) : null}
           <div className="zpc-lens-layout">
             <FlowRail labels={labels} state={state} analysis={analysis} />
             <div className="zpc-workspace">
@@ -182,11 +237,24 @@ export function Panel(props: PanelProps) {
                   <IconCrop />
                   <span>{labels.captureArea}</span>
                 </button>
+                <button className="zpc-command" type="button" onClick={() => fileInputRef.current?.click()}>
+                  <IconUpload />
+                  <span>{labels.localFile}</span>
+                </button>
               </div>
+              <button
+                type="button"
+                className={fileDragActive ? 'zpc-file-drop is-active' : 'zpc-file-drop'}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <IconUpload />
+                <span>{labels.dropTitle}</span>
+                <strong>{labels.dropBody}</strong>
+              </button>
 
               {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
-              {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} labels={labels} /> : null}
-              {state.loading ? <LoadingBlock labels={labels} /> : null}
+              {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} loadingProgress={loadingProgress} labels={labels} /> : null}
+              {state.loading ? <LoadingBlock labels={labels} progress={loadingProgress} /> : null}
               {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
               {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
               {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
@@ -242,13 +310,17 @@ function TargetPreview(props: {
   target: ImageTarget;
   analysis?: PromptAnalysis;
   loading: boolean;
+  loadingProgress: number;
   labels: (typeof copy)[UiLanguage];
 }) {
   const previewSrc = props.target.dataUrl || props.target.srcUrl;
   const quality = useMemo(() => (props.analysis ? getPromptQuality(props.analysis) : undefined), [props.analysis]);
+  const qualityValue = quality ? `${quality.score}` : props.loading ? `${props.loadingProgress}%` : '--';
   const sourceLabel =
     props.target.kind === 'selection'
       ? props.labels.sourceArea
+      : props.target.kind === 'local'
+        ? props.labels.sourceLocal
       : props.target.kind === 'image'
         ? props.labels.sourceImage
         : props.labels.sourcePage;
@@ -264,11 +336,20 @@ function TargetPreview(props: {
       </div>
       <div className="zpc-quality" aria-label={props.labels.promptQuality}>
         <span>{props.labels.promptQuality}</span>
-        <strong>{quality ? `${quality.score}` : props.loading ? props.labels.qualityBuilding : props.labels.qualityReady}</strong>
-        <i style={{ ['--zpc-quality' as string]: `${quality?.score || 34}%` }} />
+        <strong>{qualityValue}</strong>
+        <i style={{ ['--zpc-quality' as string]: `${quality?.score || props.loadingProgress || 0}%` }} />
       </div>
     </div>
   );
+}
+
+function firstImageFile(files: FileList | null): File | undefined {
+  if (!files) return undefined;
+  return [...files].find((file) => file.type.startsWith('image/') || /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(file.name));
+}
+
+function hasFileDrag(dataTransfer: DataTransfer): boolean {
+  return [...dataTransfer.types].includes('Files');
 }
 
 function LanguageToggle(props: {
@@ -300,15 +381,16 @@ function ReadyBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
   );
 }
 
-function LoadingBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    const timer = window.setInterval(() => setActive((value) => (value + 1) % labels.loadingSteps.length), 860);
-    return () => window.clearInterval(timer);
-  }, [labels.loadingSteps.length]);
+function LoadingBlock({ labels, progress }: { labels: (typeof copy)[UiLanguage]; progress: number }) {
+  const active = Math.min(labels.loadingSteps.length - 1, Math.floor(progress / 34));
 
   return (
     <div className="zpc-surface zpc-loading">
+      <div className="zpc-loading__meter">
+        <span>{labels.qualityBuilding}</span>
+        <strong>{progress}%</strong>
+        <i style={{ ['--zpc-progress' as string]: `${progress}%` }} />
+      </div>
       {labels.loadingSteps.map((step, index) => (
         <div className="zpc-loading__row" key={step}>
           <span className={index === active ? 'zpc-dot zpc-dot--active' : 'zpc-dot'} />
@@ -317,6 +399,27 @@ function LoadingBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
       ))}
     </div>
   );
+}
+
+function useLoadingProgress(loading: boolean): number {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!loading) {
+      setProgress(0);
+      return;
+    }
+    setProgress(8);
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const next = Math.min(92, 8 + Math.round(elapsed / 90));
+      setProgress(next);
+    }, 260);
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
+  return progress;
 }
 
 function ErrorBlock({ error, labels }: { error: string; labels: (typeof copy)[UiLanguage] }) {
@@ -531,7 +634,7 @@ function defaultPanelUi(): PanelChromeState {
 }
 
 function clampPanelUi(input: PanelChromeState): PanelChromeState {
-  const width = input.collapsed ? Math.min(268, window.innerWidth - 16) : Math.min(386, window.innerWidth - 16);
+  const width = input.collapsed ? Math.min(268, window.innerWidth - 16) : Math.min(376, window.innerWidth - 16);
   const minX = 8;
   const minY = 8;
   const maxX = Math.max(minX, window.innerWidth - width - 8);
@@ -607,6 +710,16 @@ function IconCrop() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M7 3.8v11.4c0 1 .8 1.8 1.8 1.8h11.4" />
       <path d="M3.8 7H15c1.1 0 2 .9 2 2v11.2" />
+    </svg>
+  );
+}
+
+function IconUpload() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 16V4.8" />
+      <path d="m7.6 9.2 4.4-4.4 4.4 4.4" />
+      <path d="M5.2 15.2v2.6c0 .9.7 1.6 1.6 1.6h10.4c.9 0 1.6-.7 1.6-1.6v-2.6" />
     </svg>
   );
 }

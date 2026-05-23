@@ -54,7 +54,7 @@ export interface ImageTarget {
   dataUrl?: string;
   pageUrl?: string;
   title?: string;
-  kind: 'image' | 'page' | 'selection';
+  kind: 'image' | 'page' | 'selection' | 'local';
 }
 
 export interface RuntimeResponse<T = unknown> {
