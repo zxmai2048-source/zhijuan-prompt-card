@@ -7,6 +7,9 @@ import { fileToDataUrl, isImageFile } from '../shared/imageData';
 import { getSettings, saveSettings } from '../shared/storage';
 import type { GeneratorSite, ImageTarget, InterfaceLanguage, RuntimeResponse } from '../shared/types';
 
+const INSTANCE_KEY = '__zhijuanPromptCardInstanceId__';
+const instanceId = `${Date.now()}-${Math.random()}`;
+
 let root: ReturnType<typeof createRoot> | undefined;
 let panelState: PanelState = { open: false, loading: false };
 let lastTarget: ImageTarget | undefined;
@@ -14,15 +17,22 @@ let noticeTimer: number | undefined;
 let interfaceLanguage: InterfaceLanguage = 'zh';
 let languageRequestId = 0;
 
+(window as unknown as Record<string, string>)[INSTANCE_KEY] = instanceId;
+
 ensurePanelRoot();
 void loadInterfaceLanguage();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!isActiveInstance()) return false;
   void handleMessage(message)
     .then((data) => sendResponse({ ok: true, data } satisfies RuntimeResponse))
     .catch((error: unknown) => sendResponse({ ok: false, error: errorToMessage(error) } satisfies RuntimeResponse));
   return true;
 });
+
+function isActiveInstance(): boolean {
+  return (window as unknown as Record<string, string>)[INSTANCE_KEY] === instanceId;
+}
 
 function ensurePanelRoot(): void {
   if (root) return;
@@ -310,5 +320,7 @@ async function writeClipboardText(text: string): Promise<void> {
 }
 
 function errorToMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
+  if (/extension context invalidated/i.test(message)) return '扩展已重新加载，请从工具栏重新打开面板。';
+  return message;
 }

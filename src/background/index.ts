@@ -29,6 +29,7 @@ const RED_TEST_IMAGE =
 
 chrome.runtime.onInstalled.addListener(() => {
   void installContextMenus();
+  void refreshOpenPageTabs();
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -50,12 +51,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 
   if (info.menuItemId === MENU_PICK_IMAGE) {
-    void sendToTab(tab.id, { type: 'START_IMAGE_PICK' });
+    void sendToTab(tab.id, { type: 'START_IMAGE_PICK' }, { forceInject: true });
     return;
   }
 
   if (info.menuItemId === MENU_CAPTURE_AREA) {
-    void sendToTab(tab.id, { type: 'START_SELECTION' });
+    void sendToTab(tab.id, { type: 'START_SELECTION' }, { forceInject: true });
   }
 });
 
@@ -101,7 +102,7 @@ async function handleRuntimeMessage(message: RuntimeMessage, sender: chrome.runt
     case 'DISPATCH_TAB_COMMAND': {
       const tabId = message.payload.tabId || (await getActiveTabId());
       if (!tabId) throw new Error('No active tab found.');
-      void sendToTab(tabId, { type: message.payload.command });
+      void sendToTab(tabId, { type: message.payload.command }, { forceInject: true });
       return true;
     }
     case 'CAPTURE_VISIBLE_TAB': {
@@ -267,13 +268,24 @@ async function resolveTargetTabId(sender: chrome.runtime.MessageSender): Promise
   return getActivePageTabId();
 }
 
-async function sendToTab(tabId: number, message: unknown): Promise<void> {
+async function sendToTab(tabId: number, message: unknown, options: { forceInject?: boolean } = {}): Promise<void> {
+  if (options.forceInject) await injectContentScript(tabId);
   try {
     await chrome.tabs.sendMessage(tabId, message);
   } catch {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] }).catch(() => undefined);
+    await injectContentScript(tabId);
     await chrome.tabs.sendMessage(tabId, message).catch(() => undefined);
   }
+}
+
+async function injectContentScript(tabId: number): Promise<void> {
+  await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] }).catch(() => undefined);
+}
+
+async function refreshOpenPageTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({});
+  const tabIds = tabs.filter(isPageTab).map((tab) => tab.id).filter((tabId): tabId is number => typeof tabId === 'number');
+  await Promise.allSettled(tabIds.map(injectContentScript));
 }
 
 async function getActivePageTabId(): Promise<number | undefined> {

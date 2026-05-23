@@ -2,6 +2,8 @@ import { dataUrlToMimeAndBase64 } from './imageData';
 import { parsePromptAnalysis } from './jsonRepair';
 import type { AppSettings, PromptAnalysis } from './types';
 
+const API_TIMEOUT_MS = 90_000;
+
 interface OpenAiContentPart {
   type?: string;
   text?: string;
@@ -20,27 +22,41 @@ export async function analyzeImageWithApi(input: {
   promptText: string;
 }): Promise<PromptAnalysis> {
   const { mime, base64 } = dataUrlToMimeAndBase64(input.imageDataUrl);
-  const response = await fetch(normalizeChatCompletionsUrl(input.settings.baseUrl), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${input.settings.apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: input.settings.model,
-      temperature: 0.18,
-      max_tokens: 8192,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: input.promptText },
-            { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } }
-          ]
-        }
-      ]
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(normalizeChatCompletionsUrl(input.settings.baseUrl), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${input.settings.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: input.settings.model,
+        temperature: 0.18,
+        max_tokens: 8192,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: input.promptText },
+              { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } }
+            ]
+          }
+        ]
+      })
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('API 请求超过 90 秒未返回。');
+    }
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 
   const payload = await readJson(response);
   if (!response.ok) {
