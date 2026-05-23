@@ -8,6 +8,30 @@ export interface GeneratorDefinition {
 }
 
 export const GENERATOR_SITES: Record<GeneratorSite, GeneratorDefinition> = {
+  chatgpt: {
+    id: 'chatgpt',
+    label: 'ChatGPT',
+    url: 'https://chatgpt.com/',
+    promptSelectors: [
+      '#prompt-textarea',
+      '[data-testid="composer-input"]',
+      "div[contenteditable='true'][role='textbox']",
+      "div[contenteditable='true']",
+      'textarea'
+    ]
+  },
+  codex: {
+    id: 'codex',
+    label: 'Codex',
+    url: 'https://chatgpt.com/codex',
+    promptSelectors: [
+      '#prompt-textarea',
+      '[data-testid="composer-input"]',
+      "div[contenteditable='true'][role='textbox']",
+      "div[contenteditable='true']",
+      'textarea'
+    ]
+  },
   jimeng: {
     id: 'jimeng',
     label: 'Jimeng',

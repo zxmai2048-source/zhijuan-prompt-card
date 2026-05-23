@@ -1,6 +1,6 @@
 export type InterfaceLanguage = 'zh' | 'en' | 'ja';
 
-export type GeneratorSite = 'jimeng' | 'gemini' | 'midjourney' | 'lovart';
+export type GeneratorSite = 'chatgpt' | 'codex' | 'jimeng' | 'gemini' | 'midjourney' | 'lovart';
 
 export interface AppSettings {
   enabled: boolean;

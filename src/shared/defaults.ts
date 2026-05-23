@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apiKey: DEFAULT_API_KEY,
   model: DEFAULT_MODEL,
   interfaceLanguage: 'zh',
-  defaultGeneratorSite: 'jimeng'
+  defaultGeneratorSite: 'chatgpt'
 };
 
 export const STORAGE_KEYS = {
@@ -19,4 +19,4 @@ export const STORAGE_KEYS = {
   history: 'zhijuan.history'
 } as const;
 
-export const GENERATOR_SITE_IDS: GeneratorSite[] = ['jimeng', 'gemini', 'midjourney', 'lovart'];
+export const GENERATOR_SITE_IDS: GeneratorSite[] = ['chatgpt', 'codex', 'jimeng', 'gemini', 'midjourney', 'lovart'];

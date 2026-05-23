@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_SETTINGS, GENERATOR_SITE_IDS } from '../shared/defaults';
+import { GENERATOR_SITES } from '../shared/generators';
 import { getSettings, saveSettings } from '../shared/storage';
 import type { AppSettings, InterfaceLanguage, RuntimeResponse } from '../shared/types';
 
@@ -130,7 +131,7 @@ export function OptionsApp() {
           >
             {GENERATOR_SITE_IDS.map((site) => (
               <option key={site} value={site}>
-                {site}
+                {GENERATOR_SITES[site].label}
               </option>
             ))}
           </select>
