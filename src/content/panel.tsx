@@ -37,6 +37,9 @@ const copy = {
     analysis: 'Prompt analysis',
     pickImage: 'Pick image',
     captureArea: 'Capture area',
+    pickingImage: 'Click a page image',
+    pickingSelection: 'Drag a region',
+    pickingBody: 'The selected source and prompt will appear in this panel.',
     sourceImage: 'Selected source',
     sourceArea: 'Captured region',
     sourcePage: 'Page source',
@@ -72,6 +75,9 @@ const copy = {
     analysis: '提示词分析',
     pickImage: '选择图片',
     captureArea: '截取区域',
+    pickingImage: '点击网页图片',
+    pickingSelection: '拖拽截取区域',
+    pickingBody: '选中的图片和生成的提示词会显示在这个面板里。',
     sourceImage: '已选图片',
     sourceArea: '截取区域',
     sourcePage: '页面来源',
@@ -137,7 +143,7 @@ export function Panel(props: PanelProps) {
       >
         <div>
           <div className="zpc-kicker">Zhijuan Prompt</div>
-          <h2>{state.loading ? labels.analyzing : analysis ? labels.analysis : labels.ready}</h2>
+          <h2>{state.loading ? labels.analyzing : analysis ? labels.analysis : state.picking === 'image' ? labels.pickingImage : state.picking === 'selection' ? labels.pickingSelection : labels.ready}</h2>
         </div>
         <div className="zpc-header-controls">
           <LanguageToggle language={language} labels={labels} onChange={props.onLanguageChange} />
@@ -178,15 +184,28 @@ export function Panel(props: PanelProps) {
             </button>
           </div>
 
+          {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
           {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} labels={labels} /> : null}
           {state.loading ? <LoadingBlock labels={labels} /> : null}
           {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
-          {!state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
+          {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
           {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
           {state.notice ? <div className="zpc-toast-inline">{state.notice}</div> : null}
         </div>
       ) : null}
     </section>
+  );
+}
+
+function PickingBlock({ mode, labels }: { mode: 'image' | 'selection'; labels: (typeof copy)[UiLanguage] }) {
+  return (
+    <div className="zpc-card zpc-picking">
+      <div className="zpc-picking__mark">{mode === 'image' ? <IconImage /> : <IconCrop />}</div>
+      <div>
+        <strong>{mode === 'image' ? labels.pickingImage : labels.pickingSelection}</strong>
+        <p>{labels.pickingBody}</p>
+      </div>
+    </div>
   );
 }
 

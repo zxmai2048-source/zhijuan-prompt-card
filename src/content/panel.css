@@ -381,15 +381,49 @@
   gap: 10px;
 }
 
-.zpc-ready strong {
+.zpc-ready strong,
+.zpc-picking strong {
   display: block;
   font: 800 13px/1.2 inherit;
 }
 
-.zpc-ready p {
+.zpc-ready p,
+.zpc-picking p {
   margin-top: 5px;
   color: var(--zpc-muted);
   font: 500 11px/1.45 inherit;
+}
+
+.zpc-picking {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-color: rgba(111, 241, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(111, 241, 255, 0.12), rgba(245, 161, 74, 0.08)),
+    var(--zpc-glass);
+}
+
+.zpc-picking__mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(111, 241, 255, 0.28);
+  border-radius: 13px;
+  background: rgba(111, 241, 255, 0.09);
+  color: var(--zpc-cyan);
+}
+
+.zpc-picking__mark svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .zpc-ready__tile {

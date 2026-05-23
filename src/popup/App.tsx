@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_SETTINGS, GENERATOR_SITE_IDS } from '../shared/defaults';
+import { DEFAULT_SETTINGS } from '../shared/defaults';
 import { GENERATOR_SITES } from '../shared/generators';
 import { getSettings, saveSettings, getHistory } from '../shared/storage';
 import type { AppSettings, HistoryEntry, InterfaceLanguage, RuntimeResponse } from '../shared/types';
@@ -16,22 +16,18 @@ const popupCopy = {
     saved: 'Saved',
     testing: 'Testing',
     localApi: 'Local API',
-    customApi: 'Custom API',
-    customApiBody: 'Endpoint, key, model, and generator handoff are editable here.',
-    pickImage: 'Pick image',
-    captureArea: 'Capture area',
+    pickImage: 'Pick page image',
+    captureArea: 'Capture region',
+    resultPanel: 'Result panel',
+    resultPanelBody: 'Floating panel',
     history: 'History',
     settings: 'Settings',
-    moreSettings: 'More settings',
-    baseUrl: 'Base URL',
-    apiKey: 'API Key',
     model: 'Model',
-    defaultGenerator: 'Default generator',
-    saveAndTest: 'Save and test',
-    privacyTitle: 'Local-first',
-    privacyBody: 'Images go only to your configured API endpoint. History and keys stay in chrome.storage.local.',
-    activeTab: 'Active tab only',
-    storage: 'Local history',
+    generator: 'Generator',
+    testConnection: 'Test',
+    apiSettings: 'API settings',
+    activeTab: 'Current tab',
+    storage: 'Local',
     entries: 'entries'
   },
   zh: {
@@ -41,22 +37,18 @@ const popupCopy = {
     saved: '已保存',
     testing: '测试中',
     localApi: '本地 API',
-    customApi: '自定义 API',
-    customApiBody: '接口地址、密钥、模型和默认生成器都在这里直接改。',
-    pickImage: '选择图片',
-    captureArea: '截取区域',
+    pickImage: '选择网页图片',
+    captureArea: '截取屏幕区域',
+    resultPanel: '结果面板',
+    resultPanelBody: '右侧浮动面板',
     history: '历史',
     settings: '设置',
-    moreSettings: '更多设置',
-    baseUrl: 'Base URL',
-    apiKey: 'API Key',
     model: 'Model',
-    defaultGenerator: '默认生成器',
-    saveAndTest: '保存并测试',
-    privacyTitle: '本地优先',
-    privacyBody: '图片只发送到你配置的 API 端点，历史和密钥保存在 chrome.storage.local。',
-    activeTab: '仅当前标签页',
-    storage: '本地历史',
+    generator: '生成器',
+    testConnection: '测试',
+    apiSettings: 'API 设置',
+    activeTab: '当前标签页',
+    storage: '本地',
     entries: '条'
   }
 } as const;
@@ -80,6 +72,7 @@ export function App() {
       return settings.baseUrl;
     }
   }, [settings.baseUrl]);
+  const generatorLabel = GENERATOR_SITES[settings.defaultGeneratorSite]?.label || settings.defaultGeneratorSite;
 
   async function refresh() {
     const nextSettings = await getSettings();
@@ -88,14 +81,7 @@ export function App() {
     setHistory(await getHistory());
   }
 
-  async function saveCurrentSettings() {
-    const next = await saveSettings(settings);
-    setSettings(next);
-    setStatus(popupCopy[normalizeLanguage(next.interfaceLanguage)].saved);
-  }
-
   async function testConnection() {
-    await saveCurrentSettings();
     setStatus(labels.testing);
     try {
       const result = await sendRuntimeMessage<{ schema: boolean; message: string }>({
@@ -145,84 +131,46 @@ export function App() {
       </section>
 
       <section className="status-card">
-        <span>{labels.localApi}</span>
-        <strong>{apiHost}</strong>
-        <p>{status}</p>
-      </section>
-
-      <section className="settings-card">
-        <div className="card-heading">
+        <div className="status-card__top">
           <div>
-            <span>{labels.customApi}</span>
-            <p>{labels.customApiBody}</p>
+            <span>{labels.localApi}</span>
+            <strong>{apiHost}</strong>
           </div>
-          <button type="button" onClick={() => chrome.runtime.openOptionsPage()}>
-            {labels.moreSettings}
+          <button type="button" onClick={() => void testConnection()}>
+            {labels.testConnection}
           </button>
         </div>
-        <label>
-          {labels.baseUrl}
-          <input value={settings.baseUrl} onChange={(event) => setSettings({ ...settings, baseUrl: event.target.value })} />
-        </label>
-        <label>
-          {labels.apiKey}
-          <input
-            value={settings.apiKey}
-            type="password"
-            onChange={(event) => setSettings({ ...settings, apiKey: event.target.value })}
-          />
-        </label>
-        <div className="settings-grid">
-          <label>
-            {labels.model}
-            <input value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} />
-          </label>
-          <label>
-            {labels.defaultGenerator}
-            <select
-              value={settings.defaultGeneratorSite}
-              onChange={(event) =>
-                setSettings({ ...settings, defaultGeneratorSite: event.target.value as AppSettings['defaultGeneratorSite'] })
-              }
-            >
-              {GENERATOR_SITE_IDS.map((site) => (
-                <option key={site} value={site}>
-                  {GENERATOR_SITES[site].label}
-                </option>
-              ))}
-            </select>
-          </label>
+        <p>{status}</p>
+        <div className="meta-row">
+          <span>{labels.model}: {settings.model}</span>
+          <span>{labels.generator}: {generatorLabel}</span>
         </div>
-        <button type="button" className="primary wide" onClick={() => void testConnection()}>
-          {labels.saveAndTest}
-        </button>
       </section>
 
-      <section className="trust-card">
-        <div>
-          <span>{labels.privacyTitle}</span>
-          <p>{labels.privacyBody}</p>
-        </div>
-        <div className="trust-grid">
-          <strong>{labels.activeTab}</strong>
-          <strong>{history.length} {labels.entries}</strong>
-          <em>{labels.storage}</em>
-        </div>
+      <section className="action-card">
+        <button type="button" className="primary action-button" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
+          <strong>{labels.pickImage}</strong>
+          <span>{labels.resultPanelBody}</span>
+        </button>
+        <button type="button" className="action-button" onClick={() => void sendActiveTabCommand('START_SELECTION')}>
+          <strong>{labels.captureArea}</strong>
+          <span>{labels.resultPanelBody}</span>
+        </button>
       </section>
 
       <section className="quick-grid">
-        <button type="button" className="primary" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
-          {labels.pickImage}
-        </button>
-        <button type="button" onClick={() => void sendActiveTabCommand('START_SELECTION')}>
-          {labels.captureArea}
-        </button>
         <button type="button" onClick={() => setView('history')}>
-          {labels.history}
+          {labels.history} · {history.length}
         </button>
         <button type="button" onClick={() => chrome.runtime.openOptionsPage()}>
-          {labels.settings}
+          {labels.apiSettings}
         </button>
+      </section>
+
+      <section className="dock-card">
+        <span>{labels.resultPanel}</span>
+        <strong>{labels.resultPanelBody}</strong>
+        <em>{labels.activeTab} · {labels.storage}</em>
       </section>
     </main>
   );

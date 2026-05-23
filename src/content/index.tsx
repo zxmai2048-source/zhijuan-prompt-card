@@ -82,11 +82,11 @@ async function handleMessage(message: any): Promise<unknown> {
 }
 
 async function runSelectionAnalysis(): Promise<void> {
-  setPanelState({ open: false, loading: false, error: undefined, notice: undefined, picking: 'selection' });
+  setPanelState({ open: true, loading: false, error: undefined, entry: undefined, target: undefined, notice: undefined, picking: 'selection' });
   await waitForNextFrame();
   const selection = await startSelectionOverlay(getSelectionCopy());
   if (!selection) {
-    setPanelState({ open: false, loading: false, picking: undefined });
+    setPanelState({ open: true, loading: false, picking: undefined });
     return;
   }
   setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: undefined, picking: undefined });
@@ -105,11 +105,11 @@ async function runSelectionAnalysis(): Promise<void> {
 }
 
 async function runImagePickAnalysis(): Promise<void> {
-  setPanelState({ open: false, loading: false, error: undefined, notice: undefined, picking: 'image' });
+  setPanelState({ open: true, loading: false, error: undefined, entry: undefined, target: undefined, notice: undefined, picking: 'image' });
   await waitForNextFrame();
   const picked = await startImagePicker(getImagePickerCopy());
   if (!picked) {
-    setPanelState({ loading: false, notice: undefined, picking: undefined });
+    setPanelState({ open: true, loading: false, notice: undefined, picking: undefined });
     return;
   }
   lastTarget = {
@@ -119,7 +119,11 @@ async function runImagePickAnalysis(): Promise<void> {
     title: picked.title || document.title || 'Selected image'
   };
   setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: lastTarget, notice: undefined, picking: undefined });
-  await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  try {
+    await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  } catch (error) {
+    setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
+  }
 }
 
 function waitForNextFrame(): Promise<void> {
@@ -226,12 +230,14 @@ function getImagePickerCopy() {
   if (interfaceLanguage === 'zh') {
     return {
       prompt: '点击任意图片开始识别。按 Esc 取消。',
-      selected: '已选择图片'
+      hover: '当前图片，点击识别',
+      selected: '已选择，右侧生成中'
     };
   }
   return {
     prompt: 'Click any image to analyze. Press Esc to cancel.',
-    selected: 'Image selected'
+    hover: 'Current image, click to analyze',
+    selected: 'Selected. Building in panel'
   };
 }
 

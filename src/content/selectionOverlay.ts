@@ -10,6 +10,7 @@ export interface PickedImageResult {
 
 export interface ImagePickerCopy {
   prompt: string;
+  hover?: string;
   selected: string;
 }
 
@@ -20,6 +21,7 @@ export interface SelectionOverlayCopy {
 
 const defaultImagePickerCopy: ImagePickerCopy = {
   prompt: 'Click any image to analyze. Press Esc to cancel.',
+  hover: 'Current image, click to analyze',
   selected: 'Image selected'
 };
 
@@ -145,9 +147,12 @@ export function startImagePicker(copy: ImagePickerCopy = defaultImagePickerCopy)
       const image = findImageAtPoint(event.clientX, event.clientY);
       if (!image) {
         frame.style.opacity = '0';
+        label.textContent = copy.prompt;
         return;
       }
       positionFrame(frame, image);
+      const rect = image.getBoundingClientRect();
+      label.textContent = `${copy.hover || copy.selected} · ${Math.round(rect.width)} × ${Math.round(rect.height)}`;
     };
 
     const onClick = (event: MouseEvent) => {
