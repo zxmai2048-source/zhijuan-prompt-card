@@ -116,17 +116,13 @@ export function App() {
   }
 
   async function sendActiveTabCommand(type: 'START_SELECTION' | 'START_IMAGE_PICK') {
-    try {
-      const tab = await getActivePageTab();
-      if (!tab?.id) {
-        setStatus(labels.activeTab);
-        return;
-      }
-      await sendTabMessageWithInjection(tab.id, { type });
-      window.close();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+    const tab = await getActivePageTab();
+    if (!tab?.id) {
+      setStatus(labels.activeTab);
+      return;
     }
+    chrome.runtime.sendMessage({ type: 'DISPATCH_TAB_COMMAND', payload: { command: type, tabId: tab.id } }, () => undefined);
+    window.close();
   }
 
   async function analyzeLocalFile(file: File | undefined) {
@@ -277,6 +273,23 @@ function normalizeLanguage(language: InterfaceLanguage): UiLanguage {
   return language === 'zh' ? 'zh' : 'en';
 }
 
+async function getActivePageTab(): Promise<chrome.tabs.Tab | undefined> {
+  const [currentWindowTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (isPageTab(currentWindowTab)) return currentWindowTab;
+
+  const [lastFocusedTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (isPageTab(lastFocusedTab)) return lastFocusedTab;
+
+  const activeTabs = await chrome.tabs.query({ active: true });
+  return activeTabs.find(isPageTab);
+}
+
+function isPageTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.Tab {
+  if (!tab?.id) return false;
+  const url = tab.url || tab.pendingUrl || '';
+  return /^https?:\/\//.test(url) || /^file:\/\//.test(url);
+}
+
 function sendRuntimeMessage<T>(message: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response: RuntimeResponse<T>) => {
@@ -288,35 +301,6 @@ function sendRuntimeMessage<T>(message: unknown): Promise<T> {
       else resolve(response.data as T);
     });
   });
-}
-
-async function sendTabMessageWithInjection(tabId: number, message: unknown): Promise<void> {
-  try {
-    await chrome.tabs.sendMessage(tabId, message);
-    return;
-  } catch {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
-    await chrome.tabs.sendMessage(tabId, message);
-  }
-}
-
-async function getActivePageTab(): Promise<chrome.tabs.Tab | undefined> {
-  const focusedWindow = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] });
-  const focusedTab = focusedWindow.tabs?.find((tab) => tab.active && isPageTab(tab));
-  if (focusedTab) return focusedTab;
-
-  const currentWindowTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  const currentWindowTab = currentWindowTabs.find(isPageTab);
-  if (currentWindowTab) return currentWindowTab;
-
-  const activeTabs = await chrome.tabs.query({ active: true });
-  return activeTabs.find(isPageTab);
-}
-
-function isPageTab(tab: chrome.tabs.Tab): boolean {
-  if (!tab.id) return false;
-  const url = tab.url || tab.pendingUrl || '';
-  return /^https?:\/\//.test(url) || /^file:\/\//.test(url);
 }
 
 function IconImage() {

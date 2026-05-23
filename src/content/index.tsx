@@ -54,7 +54,7 @@ async function handleMessage(message: any): Promise<unknown> {
       return true;
     case 'ANALYSIS_STARTED':
       lastTarget = message.payload.target;
-      setPanelState({ open: true, loading: true, error: undefined, entry: message.payload.entry, target: lastTarget });
+      setPanelState({ open: true, loading: true, error: undefined, entry: panelState.entry?.analysis ? panelState.entry : message.payload.entry, target: lastTarget });
       return true;
     case 'ANALYSIS_RESULT':
       lastTarget = message.payload.target;
@@ -62,13 +62,7 @@ async function handleMessage(message: any): Promise<unknown> {
       return true;
     case 'ANALYSIS_ERROR':
       lastTarget = message.payload.target;
-      setPanelState({
-        open: true,
-        loading: false,
-        error: message.payload.error,
-        entry: message.payload.entry,
-        target: lastTarget
-      });
+      setPanelState({ open: true, loading: false, error: message.payload.error, entry: panelState.entry?.analysis ? panelState.entry : message.payload.entry, target: lastTarget });
       return true;
     case 'START_SELECTION':
       await runSelectionAnalysis();
@@ -84,14 +78,13 @@ async function handleMessage(message: any): Promise<unknown> {
 }
 
 async function runSelectionAnalysis(): Promise<void> {
-  setPanelState({ open: true, loading: false, error: undefined, entry: undefined, target: undefined, notice: undefined, picking: 'selection' });
+  setPanelState({ open: true, loading: false, error: undefined, notice: undefined, picking: 'selection' });
   await waitForNextFrame();
   const selection = await startSelectionOverlay(getSelectionCopy());
   if (!selection) {
     setPanelState({ open: true, loading: false, picking: undefined });
     return;
   }
-  setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: undefined, picking: undefined });
   try {
     const dataUrl = await captureSelectionDataUrl(selection.rect);
     lastTarget = {
@@ -100,6 +93,7 @@ async function runSelectionAnalysis(): Promise<void> {
       pageUrl: location.href,
       title: document.title || 'Page selection'
     };
+    setPanelState({ open: true, loading: true, error: undefined, target: lastTarget, picking: undefined });
     await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
   } catch (error) {
     setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
@@ -107,7 +101,7 @@ async function runSelectionAnalysis(): Promise<void> {
 }
 
 async function runImagePickAnalysis(): Promise<void> {
-  setPanelState({ open: true, loading: false, error: undefined, entry: undefined, target: undefined, notice: undefined, picking: 'image' });
+  setPanelState({ open: true, loading: false, error: undefined, notice: undefined, picking: 'image' });
   await waitForNextFrame();
   const picked = await startImagePicker(getImagePickerCopy());
   if (!picked) {
@@ -120,7 +114,7 @@ async function runImagePickAnalysis(): Promise<void> {
     pageUrl: location.href,
     title: picked.title || document.title || 'Selected image'
   };
-  setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: lastTarget, notice: undefined, picking: undefined });
+  setPanelState({ open: true, loading: true, error: undefined, target: lastTarget, notice: undefined, picking: undefined });
   try {
     await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
   } catch (error) {
@@ -183,7 +177,7 @@ async function runLocalFileAnalysis(file: File): Promise<void> {
     setPanelState({ open: true, loading: false, error: 'Only image files are supported.', picking: undefined });
     return;
   }
-  setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: undefined, notice: undefined, picking: undefined });
+  setPanelState({ open: true, loading: true, error: undefined, notice: undefined, picking: undefined });
   try {
     const dataUrl = await fileToDataUrl(file);
     lastTarget = {
@@ -192,7 +186,7 @@ async function runLocalFileAnalysis(file: File): Promise<void> {
       pageUrl: `local-file:${file.name}`,
       title: file.name || 'Local image'
     };
-    setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: lastTarget, notice: undefined, picking: undefined });
+    setPanelState({ open: true, loading: true, error: undefined, target: lastTarget, notice: undefined, picking: undefined });
     await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
   } catch (error) {
     setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
@@ -221,7 +215,7 @@ async function copyText(text: string, label: string): Promise<void> {
 
 async function regenerate(): Promise<void> {
   if (!lastTarget) return;
-  setPanelState({ open: true, loading: true, error: undefined, entry: undefined });
+  setPanelState({ open: true, loading: true, error: undefined });
   await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
 }
 
@@ -292,9 +286,14 @@ function sendRuntimeMessage<T = unknown>(message: unknown): Promise<T> {
 }
 
 async function writeClipboardText(text: string): Promise<void> {
+  let clipboardError: unknown;
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      clipboardError = error;
+    }
   }
 
   const textarea = document.createElement('textarea');
@@ -302,10 +301,12 @@ async function writeClipboardText(text: string): Promise<void> {
   textarea.setAttribute('readonly', 'true');
   textarea.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0';
   document.documentElement.appendChild(textarea);
+  textarea.focus();
   textarea.select();
+  textarea.setSelectionRange(0, text.length);
   const copied = document.execCommand('copy');
   textarea.remove();
-  if (!copied) throw new Error('Clipboard write failed.');
+  if (!copied) throw (clipboardError instanceof Error ? clipboardError : new Error('Clipboard write failed.'));
 }
 
 function errorToMessage(error: unknown): string {

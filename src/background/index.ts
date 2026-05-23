@@ -14,6 +14,7 @@ import type { AppSettings, GeneratorSite, HistoryEntry, ImageTarget, RuntimeResp
 type RuntimeMessage =
   | { type: 'RUN_ANALYSIS'; payload: { target: ImageTarget } }
   | { type: 'OPEN_PANEL'; payload: { srcUrl?: string; pageUrl?: string } }
+  | { type: 'DISPATCH_TAB_COMMAND'; payload: { command: 'START_SELECTION' | 'START_IMAGE_PICK'; tabId?: number } }
   | { type: 'CAPTURE_VISIBLE_TAB' }
   | { type: 'OPEN_GENERATOR_SITE'; payload: { siteId: GeneratorSite; prompt: string } }
   | { type: 'OPEN_OPTIONS_PAGE' }
@@ -95,6 +96,12 @@ async function handleRuntimeMessage(message: RuntimeMessage, sender: chrome.runt
       const tabId = sender.tab?.id || (await getActiveTabId());
       if (!tabId) throw new Error('No active tab found.');
       await chrome.tabs.sendMessage(tabId, { type: 'SHOW_PANEL', payload: message.payload });
+      return true;
+    }
+    case 'DISPATCH_TAB_COMMAND': {
+      const tabId = message.payload.tabId || (await getActiveTabId());
+      if (!tabId) throw new Error('No active tab found.');
+      void sendToTab(tabId, { type: message.payload.command });
       return true;
     }
     case 'CAPTURE_VISIBLE_TAB': {

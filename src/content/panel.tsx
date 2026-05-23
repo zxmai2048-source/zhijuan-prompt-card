@@ -225,72 +225,42 @@ export function Panel(props: PanelProps) {
               <span>{labels.dropBody}</span>
             </div>
           ) : null}
-          <div className="zpc-lens-layout">
-            <FlowRail labels={labels} state={state} analysis={analysis} />
-            <div className="zpc-workspace">
-              <div className="zpc-command-row">
-                <button className="zpc-command zpc-command--primary" type="button" onClick={props.onStartImagePick}>
-                  <IconImage />
-                  <span>{labels.pickImage}</span>
-                </button>
-                <button className="zpc-command" type="button" onClick={props.onStartAreaSelect}>
-                  <IconCrop />
-                  <span>{labels.captureArea}</span>
-                </button>
-                <button className="zpc-command" type="button" onClick={() => fileInputRef.current?.click()}>
-                  <IconUpload />
-                  <span>{labels.localFile}</span>
-                </button>
-              </div>
-              <button
-                type="button"
-                className={fileDragActive ? 'zpc-file-drop is-active' : 'zpc-file-drop'}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <IconUpload />
-                <span>{labels.dropTitle}</span>
-                <strong>{labels.dropBody}</strong>
+          <div className="zpc-workspace">
+            <div className="zpc-command-row">
+              <button className="zpc-command zpc-command--primary" type="button" onClick={props.onStartImagePick}>
+                <IconImage />
+                <span>{labels.pickImage}</span>
               </button>
-
-              {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
-              {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} loadingProgress={loadingProgress} labels={labels} /> : null}
-              {state.loading ? <LoadingBlock labels={labels} progress={loadingProgress} /> : null}
-              {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
-              {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
-              {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
-              {state.notice ? <div className="zpc-toast-inline">{state.notice}</div> : null}
+              <button className="zpc-command" type="button" onClick={props.onStartAreaSelect}>
+                <IconCrop />
+                <span>{labels.captureArea}</span>
+              </button>
+              <button className="zpc-command" type="button" onClick={() => fileInputRef.current?.click()}>
+                <IconUpload />
+                <span>{labels.localFile}</span>
+              </button>
             </div>
+            <button
+              type="button"
+              className={fileDragActive ? 'zpc-file-drop is-active' : 'zpc-file-drop'}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <IconUpload />
+              <span>{labels.dropTitle}</span>
+              <strong>{labels.dropBody}</strong>
+            </button>
+
+            {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
+            {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} loadingProgress={loadingProgress} labels={labels} /> : null}
+            {state.loading ? <LoadingBlock labels={labels} progress={loadingProgress} /> : null}
+            {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
+            {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
+            {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
+            {state.notice ? <div className="zpc-toast-inline">{state.notice}</div> : null}
           </div>
         </div>
       ) : null}
     </section>
-  );
-}
-
-function FlowRail(props: { labels: (typeof copy)[UiLanguage]; state: PanelState; analysis?: PromptAnalysis }) {
-  const active = props.state.loading ? 'read' : props.analysis ? 'prompt' : props.state.target ? 'source' : props.state.picking ? 'source' : 'source';
-  const items =
-    props.labels === copy.zh
-      ? [
-          ['source', '源'],
-          ['read', '读'],
-          ['prompt', '词'],
-          ['send', '发']
-        ]
-      : [
-          ['source', 'Src'],
-          ['read', 'Read'],
-          ['prompt', 'Text'],
-          ['send', 'Go']
-        ];
-  return (
-    <nav className="zpc-flow-rail" aria-label="Prompt flow">
-      {items.map(([id, label]) => (
-        <span className={id === active ? 'is-active' : ''} key={id}>
-          {label}
-        </span>
-      ))}
-    </nav>
   );
 }
 
@@ -315,7 +285,7 @@ function TargetPreview(props: {
 }) {
   const previewSrc = props.target.dataUrl || props.target.srcUrl;
   const quality = useMemo(() => (props.analysis ? getPromptQuality(props.analysis) : undefined), [props.analysis]);
-  const qualityValue = quality ? `${quality.score}` : props.loading ? `${props.loadingProgress}%` : '--';
+  const qualityValue = props.loading ? `${props.loadingProgress}%` : quality ? `${quality.score}` : '--';
   const sourceLabel =
     props.target.kind === 'selection'
       ? props.labels.sourceArea
@@ -337,7 +307,7 @@ function TargetPreview(props: {
       <div className="zpc-quality" aria-label={props.labels.promptQuality}>
         <span>{props.labels.promptQuality}</span>
         <strong>{qualityValue}</strong>
-        <i style={{ ['--zpc-quality' as string]: `${quality?.score || props.loadingProgress || 0}%` }} />
+        <i style={{ ['--zpc-quality' as string]: `${props.loading ? props.loadingProgress : quality?.score || 0}%` }} />
       </div>
     </div>
   );
@@ -446,6 +416,8 @@ function ResultBlock(
   const entryId = props.state.entry?.id;
   const favorite = Boolean(props.state.entry?.favorite);
   const quality = getPromptQuality(analysis);
+  const tabCopyLabel = getCopyLabelForTab(tab, labels);
+  const tabCopyNotice = getCopyNoticeForTab(tab, labels);
 
   return (
     <>
@@ -459,28 +431,29 @@ function ResultBlock(
 
       <div className="zpc-prompt-output">
         <div className="zpc-result-head">
-          <span>{props.labels.output}</span>
-          <strong>{props.labels.promptQuality}: {quality.grade} / {quality.score}</strong>
+          <div>
+            <span>{props.labels.output}</span>
+            <strong>{props.labels.promptQuality}: {quality.grade} / {quality.score}</strong>
+          </div>
+          <button type="button" className="zpc-copy-chip" onClick={() => props.onCopy(tabText, tabCopyNotice)}>
+            {tabCopyLabel}
+          </button>
         </div>
         <div className="zpc-tags">{getTags(analysis, tab).map((tag) => <span key={tag}>{tag}</span>)}</div>
         <pre className="zpc-result">{tabText}</pre>
       </div>
 
       <div className="zpc-core">
-        <h3>{labels.recreation}</h3>
+        <div className="zpc-core-head">
+          <h3>{labels.recreation}</h3>
+          <button type="button" className="zpc-copy-chip" onClick={() => props.onCopy(analysis.recreation_prompt, labels.promptCopied)}>
+            {labels.copy}
+          </button>
+        </div>
         <p>{analysis.recreation_prompt}</p>
       </div>
 
       <div className="zpc-actions">
-        <button type="button" className="zpc-primary" onClick={() => props.onCopy(analysis.recreation_prompt, labels.promptCopied)}>
-          {labels.copy}
-        </button>
-        <button type="button" onClick={() => props.onCopy(JSON.stringify(analysis, null, 2), labels.jsonCopied)}>
-          {labels.copyJson}
-        </button>
-        <button type="button" onClick={() => props.onCopy(analysis.negative_prompt, labels.negativeCopied)}>
-          {labels.copyNegative}
-        </button>
         <button type="button" onClick={props.onRegenerate}>
           {labels.regenerate}
         </button>
@@ -542,6 +515,18 @@ function tabLabel(tab: PanelTab, language: UiLanguage): string {
   return language === 'zh' ? '英文' : 'EN';
 }
 
+function getCopyLabelForTab(tab: PanelTab, labels: (typeof copy)[UiLanguage]): string {
+  if (tab === 'json') return labels.copyJson;
+  if (tab === 'negative') return labels.copyNegative;
+  return labels.copy;
+}
+
+function getCopyNoticeForTab(tab: PanelTab, labels: (typeof copy)[UiLanguage]): string {
+  if (tab === 'json') return labels.jsonCopied;
+  if (tab === 'negative') return labels.negativeCopied;
+  return labels.promptCopied;
+}
+
 function normalizeLanguage(language: InterfaceLanguage): UiLanguage {
   return language === 'zh' ? 'zh' : 'en';
 }
@@ -552,7 +537,7 @@ interface PanelChromeState {
   collapsed: boolean;
 }
 
-const PANEL_UI_STORAGE_KEY = 'zhijuan_prompt_panel_ui';
+const PANEL_UI_STORAGE_KEY = 'zhijuan_prompt_panel_ui_v2';
 
 function usePanelChrome() {
   const [ui, setUi] = useState<PanelChromeState>(() => clampPanelUi(defaultPanelUi()));
