@@ -9,10 +9,10 @@
         margin: 0;
         min-height: 100vh;
         background:
-          linear-gradient(135deg, rgba(255, 111, 18, 0.14), transparent 32%),
-          linear-gradient(180deg, #141820, #07080c);
+          radial-gradient(circle at 78% 12%, rgba(130, 184, 155, 0.16), transparent 30%),
+          linear-gradient(180deg, #111514, #07080c);
         color: #f7f3ee;
-        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-family: Geist, "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
       }
 
       .mock-page {
@@ -39,7 +39,7 @@
         margin-top: 26px;
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 24px;
-        box-shadow: 0 24px 80px rgba(111, 241, 255, 0.18);
+        box-shadow: 0 24px 80px rgba(130, 184, 155, 0.18);
       }
     </style>
   </head>
@@ -65,38 +65,38 @@
       const mode = new URLSearchParams(location.search).get('mode') || 'result';
       const sampleAnalysis = {
         zh: {
-          prompt: '一张深色棚拍产品图，主体是一张橙色高光边缘的提示词卡片，置于黑色磨砂桌面上，周围有柔和反光与细微颗粒质感，画面采用近景俯拍构图，背景保持简洁压暗，突出卡片上的图像分析工作流和本地优先的工具气质。',
-          analysis: '画面依靠低调光、橙色强调和紧凑构图建立高级工具感。'
+          prompt: '一张黑色磨砂玻璃 Chrome 插件界面，主体是紧凑的图片识别结果镜头：上方显示已选图片缩略图和质量评分，下方是清晰的提示词输出区，左侧有源、读、词、发流程轨。整体使用哑光石墨背景、细腻内边框折射和柔和湖绿色强调，布局克制、日常可用。',
+          analysis: '画面依靠黑色磨砂玻璃、湖绿色状态和明确的源图/提示词分区建立高级工具感。'
         },
         en: {
-          prompt: 'A polished dark product-style interface shot showing a compact prompt analysis card on a matte black desk, edged with warm orange highlights, soft reflections, subtle grain, and carefully spaced UI sections. The composition is a close three-quarter top view with the card dominant in the frame, a restrained background, crisp borders, premium shadows, and a focused local-first creative tool mood.',
-          analysis: 'The image relies on low-key lighting, orange accent color, compact UI hierarchy, and a premium software-tool composition.'
+          prompt: 'A black frosted-glass Chrome extension interface showing a compact image-to-prompt result lens: selected image thumbnail and prompt quality at the top, a dominant generated prompt output area below, and a left flow rail for source, reading, prompt, and handoff. The visual system uses matte graphite, tactile inner borders, and one muted lake-green accent.',
+          analysis: 'The image uses frosted glass, lake-green state feedback, and clear source/prompt separation to create a premium daily-use tool.'
         },
         ja: {
-          prompt: '暗いマットな机の上に、オレンジのアクセントで縁取られたプロンプト解析カードが置かれた上質なプロダクトUI風の画像。柔らかな反射、控えめな粒状感、整理された情報ブロック、近距離の斜め俯瞰構図で、ローカル優先の制作ツールらしい集中感を出している。',
-          analysis: '低照度、オレンジの強調、整ったカード構成で高級なツール感を作っている。'
+          prompt: '黒いフロストガラス質感の Chrome 拡張 UI。選択画像のサムネイル、品質表示、生成プロンプト出力欄、左側の工程レールを備えたコンパクトな結果レンズ。',
+          analysis: 'フロストガラス、湖緑の状態表示、明確な出力領域で高級なツール感を作っている。'
         },
-        zh_style_tags: ['暗色高级', '橙色强调', '工具界面', '柔和反光'],
-        en_style_tags: ['dark premium', 'orange accent', 'tool UI', 'soft reflection'],
+        zh_style_tags: ['黑色磨砂', '湖绿色强调', '结果镜头', '源图预览'],
+        en_style_tags: ['black frosted glass', 'lake green accent', 'result lens', 'source preview'],
         ja_style_tags: ['暗色高級', '橙色アクセント', 'ツールUI', '柔らかい反射'],
         json_prompt: {
-          subject: 'Compact prompt analysis card interface',
-          action_pose: 'Card presented as a focused local-first tool surface',
-          details_appearance: 'Dark cards, orange active controls, pill tags, copy actions, generator buttons',
-          environment_background: 'Matte black desk and restrained software backdrop',
-          lighting_atmosphere: 'Low-key soft lighting with warm orange edge highlights',
-          composition_framing: 'Right-side floating panel, close UI framing, dense readable hierarchy',
+          subject: 'Compact image-to-prompt result lens interface',
+          action_pose: 'Selected image preview and generated prompt displayed together',
+          details_appearance: 'Black frosted glass, left flow rail, source thumbnail, prompt output, copy actions, generator buttons',
+          environment_background: 'Matte graphite browser page and restrained software backdrop',
+          lighting_atmosphere: 'Low-key soft lighting with muted lake-green edge refraction',
+          composition_framing: 'Floating result lens, source strip above prompt output, compact readable hierarchy',
           style_camera: 'Premium SaaS tool screenshot with product photography polish',
-          colors: ['near black', 'warm orange', 'soft ivory'],
-          materials: ['matte glass', 'soft shadow', 'digital UI'],
+          colors: ['matte charcoal', 'lake green', 'soft ivory'],
+          materials: ['frosted glass', 'inner border', 'digital UI'],
           aspect_ratio: '4:5',
-          quality_modifiers: ['premium UI', 'compact cards', 'sharp text', 'soft shadow'],
+          quality_modifiers: ['premium UI', 'result lens', 'sharp text', 'soft shadow'],
           likely_generation_intent: 'Show a refined local-first image prompt extension'
         },
         recreation_prompt:
-          'A premium dark software interface screenshot showing a compact image-to-prompt analysis panel, near-black background, warm orange accent buttons, softly bordered cards, pill-shaped style tags, copy actions, generator handoff buttons, crisp typography, subtle shadows, and a polished local-first creative tool atmosphere.',
+          'A premium black frosted-glass Chrome extension screenshot showing a compact image-to-prompt result lens, selected image preview, prompt output area, muted lake-green accent, inner refraction borders, copy actions, generator handoff buttons, crisp typography, subtle shadows, and a polished local-first creative tool atmosphere.',
         prompt_core:
-          'Premium dark image prompt analysis panel, orange accent, compact cards, pill tags, local-first creative tool UI.',
+          'Premium black frosted-glass result lens, selected image preview, prompt output, lake-green accent, local-first creative tool UI.',
         negative_prompt: 'blurry text, cluttered layout, low contrast, harsh glow, broken UI, random icons, noisy background'
       };
 
@@ -112,7 +112,7 @@
           });
         } else {
           send('ANALYSIS_RESULT', {
-            target: { kind: 'image', title: 'Harness image' },
+            target: { kind: 'image', title: 'Harness image', srcUrl: '/public/icons/icon-128.png' },
             entry: {
               id: 'result',
               createdAt: new Date().toISOString(),
@@ -122,6 +122,13 @@
               analysis: sampleAnalysis
             }
           });
+        }
+        if (mode === 'collapsed') {
+          setTimeout(() => {
+            const root = document.querySelector('#zhijuan-prompt-root')?.shadowRoot;
+            const collapse = root?.querySelector('button[aria-label="折叠"], button[aria-label="Collapse"]');
+            collapse && collapse.click();
+          }, 180);
         }
       }, 120);
     </script>

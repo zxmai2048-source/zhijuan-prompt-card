@@ -32,6 +32,7 @@ type UiLanguage = 'zh' | 'en';
 const copy = {
   en: {
     launcher: 'Zhijuan Prompt',
+    lens: 'Result lens',
     ready: 'Ready',
     analyzing: 'Analyzing image',
     analysis: 'Prompt analysis',
@@ -47,10 +48,11 @@ const copy = {
     promptQuality: 'Prompt quality',
     qualityReady: 'ready',
     qualityBuilding: 'building',
-    chooseTitle: 'Choose an image anywhere',
-    chooseBody: 'Pick a page image or drag a region. The prompt opens here and is saved locally.',
+    chooseTitle: 'Choose an image source',
+    chooseBody: 'Pick a page image or drag a region. The selected source appears above the prompt output.',
     loadingSteps: ['Reading the image', 'Extracting visual style', 'Building your prompt'],
     failed: 'Analysis failed',
+    output: 'Prompt output',
     recreation: 'Recreation prompt',
     copy: 'Copy',
     copyJson: 'Copy JSON',
@@ -70,6 +72,7 @@ const copy = {
   },
   zh: {
     launcher: 'Zhijuan Prompt',
+    lens: '结果镜头',
     ready: '准备就绪',
     analyzing: '正在识别图片',
     analysis: '提示词分析',
@@ -85,10 +88,11 @@ const copy = {
     promptQuality: '提示词质量',
     qualityReady: '就绪',
     qualityBuilding: '生成中',
-    chooseTitle: '选择任意图片',
-    chooseBody: '点选网页图片或拖拽区域，提示词会在这里生成并保存到本地。',
+    chooseTitle: '选择图片源',
+    chooseBody: '点选网页图片或拖拽区域，源图会显示在上方，提示词会显示在输出区。',
     loadingSteps: ['读取图片', '提取视觉风格', '生成提示词'],
     failed: '识别失败',
+    output: '提示词输出',
     recreation: '复刻提示词',
     copy: '复制',
     copyJson: '复制 JSON',
@@ -133,7 +137,7 @@ export function Panel(props: PanelProps) {
       data-state={state.loading ? 'loading' : analysis ? 'result' : state.error ? 'error' : 'ready'}
       style={{ left: chrome.position.x, top: chrome.position.y }}
     >
-      <div className="zpc-panel__sheen" />
+      <div className="zpc-panel__edge" />
       <header
         className="zpc-panel__header"
         onPointerDown={chrome.onPointerDown}
@@ -141,9 +145,10 @@ export function Panel(props: PanelProps) {
         onPointerUp={chrome.onPointerUp}
         onPointerCancel={chrome.onPointerUp}
       >
-        <div>
-          <div className="zpc-kicker">Zhijuan Prompt</div>
-          <h2>{state.loading ? labels.analyzing : analysis ? labels.analysis : state.picking === 'image' ? labels.pickingImage : state.picking === 'selection' ? labels.pickingSelection : labels.ready}</h2>
+        <div className="zpc-drag-orb" aria-hidden="true" />
+        <div className="zpc-title-stack">
+          <div className="zpc-kicker">{chrome.collapsed ? labels.lens : 'Zhijuan Prompt'}</div>
+          <h2>{state.loading ? labels.analyzing : analysis ? labels.output : state.picking === 'image' ? labels.pickingImage : state.picking === 'selection' ? labels.pickingSelection : labels.ready}</h2>
         </div>
         <div className="zpc-header-controls">
           <LanguageToggle language={language} labels={labels} onChange={props.onLanguageChange} />
@@ -173,33 +178,65 @@ export function Panel(props: PanelProps) {
 
       {!chrome.collapsed ? (
         <div className="zpc-panel__body">
-          <div className="zpc-command-row">
-            <button className="zpc-command zpc-command--primary" type="button" onClick={props.onStartImagePick}>
-              <IconImage />
-              <span>{labels.pickImage}</span>
-            </button>
-            <button className="zpc-command" type="button" onClick={props.onStartAreaSelect}>
-              <IconCrop />
-              <span>{labels.captureArea}</span>
-            </button>
-          </div>
+          <div className="zpc-lens-layout">
+            <FlowRail labels={labels} state={state} analysis={analysis} />
+            <div className="zpc-workspace">
+              <div className="zpc-command-row">
+                <button className="zpc-command zpc-command--primary" type="button" onClick={props.onStartImagePick}>
+                  <IconImage />
+                  <span>{labels.pickImage}</span>
+                </button>
+                <button className="zpc-command" type="button" onClick={props.onStartAreaSelect}>
+                  <IconCrop />
+                  <span>{labels.captureArea}</span>
+                </button>
+              </div>
 
-          {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
-          {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} labels={labels} /> : null}
-          {state.loading ? <LoadingBlock labels={labels} /> : null}
-          {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
-          {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
-          {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
-          {state.notice ? <div className="zpc-toast-inline">{state.notice}</div> : null}
+              {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
+              {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} labels={labels} /> : null}
+              {state.loading ? <LoadingBlock labels={labels} /> : null}
+              {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
+              {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
+              {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
+              {state.notice ? <div className="zpc-toast-inline">{state.notice}</div> : null}
+            </div>
+          </div>
         </div>
       ) : null}
     </section>
   );
 }
 
+function FlowRail(props: { labels: (typeof copy)[UiLanguage]; state: PanelState; analysis?: PromptAnalysis }) {
+  const active = props.state.loading ? 'read' : props.analysis ? 'prompt' : props.state.target ? 'source' : props.state.picking ? 'source' : 'source';
+  const items =
+    props.labels === copy.zh
+      ? [
+          ['source', '源'],
+          ['read', '读'],
+          ['prompt', '词'],
+          ['send', '发']
+        ]
+      : [
+          ['source', 'Src'],
+          ['read', 'Read'],
+          ['prompt', 'Text'],
+          ['send', 'Go']
+        ];
+  return (
+    <nav className="zpc-flow-rail" aria-label="Prompt flow">
+      {items.map(([id, label]) => (
+        <span className={id === active ? 'is-active' : ''} key={id}>
+          {label}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
 function PickingBlock({ mode, labels }: { mode: 'image' | 'selection'; labels: (typeof copy)[UiLanguage] }) {
   return (
-    <div className="zpc-card zpc-picking">
+    <div className="zpc-surface zpc-picking">
       <div className="zpc-picking__mark">{mode === 'image' ? <IconImage /> : <IconCrop />}</div>
       <div>
         <strong>{mode === 'image' ? labels.pickingImage : labels.pickingSelection}</strong>
@@ -261,7 +298,7 @@ function LanguageToggle(props: {
 
 function ReadyBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
   return (
-    <div className="zpc-card zpc-ready">
+    <div className="zpc-surface zpc-ready">
       <div className="zpc-ready__tile" />
       <div>
         <strong>{labels.chooseTitle}</strong>
@@ -279,7 +316,7 @@ function LoadingBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
   }, [labels.loadingSteps.length]);
 
   return (
-    <div className="zpc-card zpc-loading">
+    <div className="zpc-surface zpc-loading">
       {labels.loadingSteps.map((step, index) => (
         <div className="zpc-loading__row" key={step}>
           <span className={index === active ? 'zpc-dot zpc-dot--active' : 'zpc-dot'} />
@@ -292,7 +329,7 @@ function LoadingBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
 
 function ErrorBlock({ error, labels }: { error: string; labels: (typeof copy)[UiLanguage] }) {
   return (
-    <div className="zpc-card zpc-error">
+    <div className="zpc-surface zpc-error">
       <strong>{labels.failed}</strong>
       <p>{error}</p>
     </div>
@@ -325,16 +362,16 @@ function ResultBlock(
         ))}
       </div>
 
-      <div className="zpc-card">
+      <div className="zpc-prompt-output">
         <div className="zpc-result-head">
-          <span>{props.labels.promptQuality}</span>
-          <strong>{quality.grade} / {quality.score}</strong>
+          <span>{props.labels.output}</span>
+          <strong>{props.labels.promptQuality}: {quality.grade} / {quality.score}</strong>
         </div>
         <div className="zpc-tags">{getTags(analysis, tab).map((tag) => <span key={tag}>{tag}</span>)}</div>
         <pre className="zpc-result">{tabText}</pre>
       </div>
 
-      <div className="zpc-card zpc-core">
+      <div className="zpc-core">
         <h3>{labels.recreation}</h3>
         <p>{analysis.recreation_prompt}</p>
       </div>
@@ -495,14 +532,14 @@ function usePanelChrome() {
 
 function defaultPanelUi(): PanelChromeState {
   return {
-    x: Math.max(8, window.innerWidth - 368),
+    x: Math.max(8, window.innerWidth - 398),
     y: 14,
     collapsed: false
   };
 }
 
 function clampPanelUi(input: PanelChromeState): PanelChromeState {
-  const width = input.collapsed ? Math.min(284, window.innerWidth - 16) : Math.min(356, window.innerWidth - 16);
+  const width = input.collapsed ? Math.min(268, window.innerWidth - 16) : Math.min(386, window.innerWidth - 16);
   const minX = 8;
   const minY = 8;
   const maxX = Math.max(minX, window.innerWidth - width - 8);

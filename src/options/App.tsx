@@ -93,8 +93,25 @@ export function OptionsApp() {
 
   return (
     <main className="options-shell">
-      <section className="settings-panel">
-        <header>
+      <aside className="settings-rail">
+        <div className="rail-brand">
+          <p>{labels.title}</p>
+          <h1>{labels.settings}</h1>
+        </div>
+        <nav aria-label={labels.settings}>
+          <span className="is-active">01 {labels.endpointSection}</span>
+          <span>02 {labels.generationSection}</span>
+          <span>03 {labels.interfaceSection}</span>
+          <span>04 {labels.privacy}</span>
+        </nav>
+        <div className="rail-status">
+          <span>{labels.ready}</span>
+          <strong>{status}</strong>
+        </div>
+      </aside>
+
+      <section className="settings-workbench">
+        <header className="workbench-head">
           <div>
             <p>{labels.title}</p>
             <h1>{labels.settings}</h1>
@@ -103,7 +120,7 @@ export function OptionsApp() {
           <span>{status}</span>
         </header>
 
-        <div className="settings-section">
+        <div className="settings-section settings-section--endpoint">
           <div className="section-copy">
             <span>01</span>
             <h2>{labels.endpointSection}</h2>

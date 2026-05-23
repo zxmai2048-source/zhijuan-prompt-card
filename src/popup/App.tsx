@@ -11,49 +11,55 @@ type UiLanguage = 'zh' | 'en';
 const popupCopy = {
   en: {
     title: 'Zhijuan Prompt',
-    subtitle: 'Image prompt workbench',
+    subtitle: 'Image source',
     ready: 'Ready',
     saved: 'Saved',
     testing: 'Testing',
     localApi: 'Local API',
-    pickImage: 'Pick page image',
-    captureArea: 'Capture region',
-    pickHint: 'Click an image, then read the prompt in the floating panel.',
-    captureHint: 'Drag a screen region, then inspect the generated prompt.',
-    resultPanel: 'Result panel',
-    resultPanelBody: 'Floating panel',
+    pickImage: 'Pick image',
+    captureArea: 'Capture',
+    pickHint: 'Selected image enters the lens.',
+    captureHint: 'Captured region enters the result lens.',
+    resultPanel: 'Result lens',
+    resultPanelBody: 'Source preview and prompt output',
     history: 'History',
     settings: 'Settings',
+    test: 'Test',
     model: 'Model',
     generator: 'Generator',
-    testConnection: 'Test',
+    testConnection: 'Test API',
     apiSettings: 'API settings',
     activeTab: 'Current tab',
     storage: 'Local',
-    entries: 'entries'
+    entries: 'entries',
+    actionHint: 'Choose an image, then read the prompt.',
+    dockLabel: 'Local workflow'
   },
   zh: {
     title: 'Zhijuan Prompt',
-    subtitle: '图片提示词工作台',
+    subtitle: '图片源',
     ready: '准备就绪',
     saved: '已保存',
     testing: '测试中',
     localApi: '本地 API',
-    pickImage: '选择网页图片',
-    captureArea: '截取屏幕区域',
-    pickHint: '点击页面图片，提示词会在浮动面板里生成。',
-    captureHint: '拖拽框选区域，结果同样回到浮动面板。',
-    resultPanel: '结果面板',
-    resultPanelBody: '右侧浮动面板',
+    pickImage: '选图识别',
+    captureArea: '框选',
+    pickHint: '选图后进入结果镜头。',
+    captureHint: '截取区域会进入结果镜头。',
+    resultPanel: '结果镜头',
+    resultPanelBody: '源图预览 + 提示词输出',
     history: '历史',
     settings: '设置',
+    test: '测试',
     model: 'Model',
     generator: '生成器',
-    testConnection: '测试',
+    testConnection: '测试 API',
     apiSettings: 'API 设置',
     activeTab: '当前标签页',
     storage: '本地',
-    entries: '条'
+    entries: '条',
+    actionHint: '先选图片，再读提示词。',
+    dockLabel: '本地流程'
   }
 } as const;
 
@@ -117,64 +123,62 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
-        <div>
+      <header className="microbar">
+        <div className="brand">
           <p>{labels.title}</p>
           <h1>{labels.subtitle}</h1>
         </div>
-        <span className="status-pill">{settings.model}</span>
-      </header>
-
-      <section className="language-row" aria-label="Language">
-        <button className={language === 'zh' ? 'is-active' : ''} type="button" onClick={() => void changeLanguage('zh')}>
-          中文
-        </button>
-        <button className={language === 'en' ? 'is-active' : ''} type="button" onClick={() => void changeLanguage('en')}>
-          English
-        </button>
-      </section>
-
-      <section className="status-card">
-        <div className="status-card__top">
-          <div>
-            <span>{labels.localApi}</span>
-            <strong>{apiHost}</strong>
-          </div>
-          <button type="button" onClick={() => void testConnection()}>
-            {labels.testConnection}
+        <div className="language-pills" aria-label="Language">
+          <button className={language === 'zh' ? 'is-active' : ''} type="button" onClick={() => void changeLanguage('zh')}>
+            中
+          </button>
+          <button className={language === 'en' ? 'is-active' : ''} type="button" onClick={() => void changeLanguage('en')}>
+            EN
           </button>
         </div>
-        <p>{status}</p>
-        <div className="meta-row">
-          <span>{labels.model}: {settings.model}</span>
-          <span>{labels.generator}: {generatorLabel}</span>
+      </header>
+
+      <section className="command-puck" aria-label={labels.dockLabel}>
+        <button type="button" className="orbit-action orbit-action--secondary" onClick={() => void sendActiveTabCommand('START_SELECTION')}>
+          <IconCrop />
+          <span>{labels.captureArea}</span>
+        </button>
+        <div className="puck-core">
+          <span>{labels.subtitle}</span>
+          <strong>{labels.pickHint}</strong>
+        </div>
+        <button type="button" className="orbit-action orbit-action--primary" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
+          <IconImage />
+          <span>{labels.pickImage}</span>
+        </button>
+      </section>
+
+      <section className="signal-strip">
+        <button className="signal-card" type="button" onClick={() => void testConnection()}>
+          <span>{labels.localApi}</span>
+          <strong>{apiHost}</strong>
+          <em>{status}</em>
+        </button>
+        <div className="signal-card">
+          <span>{labels.resultPanel}</span>
+          <strong>{labels.resultPanelBody}</strong>
+          <em>{labels.model}: {settings.model}</em>
         </div>
       </section>
 
-      <section className="action-card">
-        <button type="button" className="primary action-button" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
-          <strong>{labels.pickImage}</strong>
-          <span>{labels.pickHint}</span>
-        </button>
-        <button type="button" className="action-button" onClick={() => void sendActiveTabCommand('START_SELECTION')}>
-          <strong>{labels.captureArea}</strong>
-          <span>{labels.captureHint}</span>
-        </button>
-      </section>
-
-      <section className="quick-grid">
-        <button type="button" onClick={() => setView('history')}>
-          {labels.history} · {history.length}
+      <section className="utility-dock" aria-label={labels.dockLabel}>
+        <button type="button" onClick={() => setView('history')} aria-label={labels.history}>
+          <IconHistory />
+          <span>{history.length}</span>
         </button>
         <button type="button" onClick={() => chrome.runtime.openOptionsPage()}>
-          {labels.apiSettings}
+          <IconSettings />
+          <span>{labels.settings}</span>
         </button>
-      </section>
-
-      <section className="dock-card">
-        <span>{labels.resultPanel}</span>
-        <strong>{labels.resultPanelBody}</strong>
-        <em>{labels.activeTab} · {labels.storage}</em>
+        <button type="button" onClick={() => void testConnection()}>
+          <IconPulse />
+          <span>{generatorLabel}</span>
+        </button>
       </section>
     </main>
   );
@@ -195,4 +199,49 @@ function sendRuntimeMessage<T>(message: unknown): Promise<T> {
       else resolve(response.data as T);
     });
   });
+}
+
+function IconImage() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5.8 7.4c0-1 .8-1.8 1.8-1.8h8.8c1 0 1.8.8 1.8 1.8v9.2c0 1-.8 1.8-1.8 1.8H7.6c-1 0-1.8-.8-1.8-1.8V7.4Z" />
+      <path d="m7.2 16 3.3-3.2 2 1.9 1.3-1.4 3 2.7" />
+      <path d="M14.9 9.1h.1" />
+    </svg>
+  );
+}
+
+function IconCrop() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3.8v11.4c0 1 .8 1.8 1.8 1.8h11.4" />
+      <path d="M3.8 7H15c1.1 0 2 .9 2 2v11.2" />
+    </svg>
+  );
+}
+
+function IconHistory() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5.5 5.6h13M5.5 12h13M5.5 18.4h8.8" />
+      <path d="M4.8 4.4v15.2" />
+    </svg>
+  );
+}
+
+function IconSettings() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2Z" />
+      <path d="m18.7 14 .1-2-.1-2 1.7-1.2-1.8-3.1-2 .8a7.7 7.7 0 0 0-1.7-1l-.3-2.1h-5.2l-.3 2.1a7.7 7.7 0 0 0-1.7 1l-2-.8-1.8 3.1L5.3 10a7.8 7.8 0 0 0-.1 2l.1 2-1.7 1.2 1.8 3.1 2-.8c.5.4 1.1.7 1.7 1l.3 2.1h5.2l.3-2.1c.6-.3 1.2-.6 1.7-1l2 .8 1.8-3.1L18.7 14Z" />
+    </svg>
+  );
+}
+
+function IconPulse() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 12h3.2l2-5.3 4 10.6 2.4-5.3H20" />
+    </svg>
+  );
 }
