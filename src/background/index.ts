@@ -1,20 +1,24 @@
-import { analyzeImageWithApi } from '../shared/apiClient';
+import { analyzeImageWithApi, isAbortError } from '../shared/apiClient';
 import { GENERATOR_SITES, getGeneratorSite } from '../shared/generators';
 import { resizeDataUrl, urlToDataUrl } from '../shared/imageData';
 import { REVERSE_PROMPT_SYSTEM } from '../shared/reversePrompt';
 import {
   addHistoryEntry,
   buildHistoryTitle,
+  compactHistoryStorage,
   createRunningHistoryEntry,
+  failRunningHistoryEntries,
   getSettings,
+  saveSettings,
   updateHistoryEntry
 } from '../shared/storage';
-import type { AppSettings, GeneratorSite, HistoryEntry, ImageTarget, RuntimeResponse } from '../shared/types';
+import type { AnalysisPhase, AppSettings, GeneratorSite, HistoryEntry, ImageTarget, RuntimeResponse } from '../shared/types';
 
 type RuntimeMessage =
   | { type: 'RUN_ANALYSIS'; payload: { target: ImageTarget } }
+  | { type: 'CANCEL_ANALYSIS'; payload?: { id?: string } }
   | { type: 'OPEN_PANEL'; payload: { srcUrl?: string; pageUrl?: string } }
-  | { type: 'DISPATCH_TAB_COMMAND'; payload: { command: 'START_SELECTION' | 'START_IMAGE_PICK'; tabId?: number } }
+  | { type: 'DISPATCH_TAB_COMMAND'; payload: { command: TabCommand; tabId?: number; allPageTabs?: boolean } }
   | { type: 'CAPTURE_VISIBLE_TAB' }
   | { type: 'OPEN_GENERATOR_SITE'; payload: { siteId: GeneratorSite; prompt: string } }
   | { type: 'OPEN_OPTIONS_PAGE' }
@@ -24,20 +28,35 @@ type RuntimeMessage =
 const MENU_ANALYZE_IMAGE = 'zhijuan-analyze-image';
 const MENU_PICK_IMAGE = 'zhijuan-pick-image';
 const MENU_CAPTURE_AREA = 'zhijuan-capture-area';
+const ANALYSIS_CANCELED_MESSAGE = '已取消识别。';
 const RED_TEST_IMAGE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAEklEQVR4nGP4z8DwHxkzkC4AADxAH+HggXe0AAAAAElFTkSuQmCC';
+type TabCommand = 'START_SELECTION' | 'START_IMAGE_PICK' | 'SHOW_FLOATING_BUTTON' | 'HIDE_FLOATING_BUTTON';
+type ActiveAnalysis = {
+  controller: AbortController;
+  entry: HistoryEntry;
+  tabId?: number;
+  target: ImageTarget;
+};
+
+const activeAnalyses = new Map<string, ActiveAnalysis>();
 
 chrome.runtime.onInstalled.addListener(() => {
-  void installContextMenus();
-  void refreshOpenPageTabs();
+  runBackgroundTask(compactHistoryStorage);
+  runBackgroundTask(failRunningHistoryEntries);
+  runBackgroundTask(installContextMenus);
+  runBackgroundTask(refreshOpenPageTabs);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void installContextMenus();
+  runBackgroundTask(compactHistoryStorage);
+  runBackgroundTask(failRunningHistoryEntries);
+  runBackgroundTask(installContextMenus);
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab?.id) return;
+  const tabId = tab.id;
 
   if (info.menuItemId === MENU_ANALYZE_IMAGE && info.mediaType === 'image' && info.srcUrl) {
     const target: ImageTarget = {
@@ -46,17 +65,17 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       pageUrl: tab.url,
       title: tab.title || 'Image analysis'
     };
-    void runAnalysisForTab(tab.id, target);
+    runBackgroundTask(() => runAnalysisForTab(tabId, target));
     return;
   }
 
   if (info.menuItemId === MENU_PICK_IMAGE) {
-    void sendToTab(tab.id, { type: 'START_IMAGE_PICK' }, { forceInject: true });
+    runBackgroundTask(() => sendToTab(tabId, { type: 'START_IMAGE_PICK' }, { forceInject: true }));
     return;
   }
 
   if (info.menuItemId === MENU_CAPTURE_AREA) {
-    void sendToTab(tab.id, { type: 'START_SELECTION' }, { forceInject: true });
+    runBackgroundTask(() => sendToTab(tabId, { type: 'START_SELECTION' }, { forceInject: true }));
   }
 });
 
@@ -68,21 +87,39 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
 });
 
 async function installContextMenus(): Promise<void> {
-  await chrome.contextMenus.removeAll();
-  chrome.contextMenus.create({
+  await removeAllContextMenus();
+  await createContextMenu({
     id: MENU_ANALYZE_IMAGE,
     title: 'Analyze this image',
     contexts: ['image']
   });
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: MENU_PICK_IMAGE,
     title: 'Pick image on page',
     contexts: ['page']
   });
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: MENU_CAPTURE_AREA,
     title: 'Capture area for prompt',
     contexts: ['page']
+  });
+}
+
+function removeAllContextMenus(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.contextMenus.removeAll(() => {
+      const error = chrome.runtime.lastError;
+      error?.message ? reject(new Error(error.message)) : resolve();
+    });
+  });
+}
+
+function createContextMenu(properties: chrome.contextMenus.CreateProperties): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.contextMenus.create(properties, () => {
+      const error = chrome.runtime.lastError;
+      error?.message ? reject(new Error(error.message)) : resolve();
+    });
   });
 }
 
@@ -90,19 +127,25 @@ async function handleRuntimeMessage(message: RuntimeMessage, sender: chrome.runt
   switch (message.type) {
     case 'RUN_ANALYSIS': {
       const tabId = (await resolveTargetTabId(sender)) || (await getActiveTabId());
-      if (!tabId) throw new Error('No active tab found.');
+      if (!tabId && !message.payload.target.dataUrl) throw new Error('No active tab found.');
       return runAnalysisForTab(tabId, message.payload.target);
     }
+    case 'CANCEL_ANALYSIS':
+      return cancelAnalysis(message.payload?.id);
     case 'OPEN_PANEL': {
       const tabId = sender.tab?.id || (await getActiveTabId());
       if (!tabId) throw new Error('No active tab found.');
-      await chrome.tabs.sendMessage(tabId, { type: 'SHOW_PANEL', payload: message.payload });
+      await sendToTab(tabId, { type: 'SHOW_PANEL', payload: message.payload }, { forceInject: true });
       return true;
     }
     case 'DISPATCH_TAB_COMMAND': {
+      if (isFloatingButtonCommand(message.payload.command)) {
+        await saveFloatingButtonPreference(message.payload.command === 'SHOW_FLOATING_BUTTON');
+      }
+      if (message.payload.allPageTabs) return dispatchCommandToPageTabs(message.payload.command);
       const tabId = message.payload.tabId || (await getActiveTabId());
       if (!tabId) throw new Error('No active tab found.');
-      void sendToTab(tabId, { type: message.payload.command }, { forceInject: true });
+      await sendToTab(tabId, { type: message.payload.command }, { forceInject: true });
       return true;
     }
     case 'CAPTURE_VISIBLE_TAB': {
@@ -124,24 +167,32 @@ async function handleRuntimeMessage(message: RuntimeMessage, sender: chrome.runt
   }
 }
 
-async function runAnalysisForTab(tabId: number, target: ImageTarget): Promise<HistoryEntry> {
+async function runAnalysisForTab(tabId: number | undefined, target: ImageTarget): Promise<HistoryEntry> {
   const runningEntry = createRunningHistoryEntry({
-    imageUrl: target.srcUrl || target.dataUrl,
+    imageUrl: target.srcUrl,
     pageUrl: target.pageUrl,
     title: target.title || 'Image analysis'
   });
   await addHistoryEntry(runningEntry);
-  await sendToTab(tabId, { type: 'ANALYSIS_STARTED', payload: { entry: runningEntry, target } });
+  const controller = new AbortController();
+  activeAnalyses.set(runningEntry.id, { controller, entry: runningEntry, tabId, target });
+  if (tabId) await notifyTab(tabId, { type: 'ANALYSIS_STARTED', payload: { entry: runningEntry, target } });
 
   try {
     const settings = await getSettings();
     if (!settings.enabled) throw new Error('Extension is disabled in settings.');
-    const imageDataUrl = await prepareImageDataUrl(target, tabId);
+    throwIfAborted(controller.signal);
+    if (tabId) await notifyAnalysisPhase(tabId, runningEntry.id, 'preparing_image', target);
+    const imageDataUrl = await prepareImageDataUrl(target, tabId, controller.signal);
+    throwIfAborted(controller.signal);
+    if (tabId) await notifyAnalysisPhase(tabId, runningEntry.id, 'requesting_model', target);
     const analysis = await analyzeImageWithApi({
       settings,
       imageDataUrl,
-      promptText: REVERSE_PROMPT_SYSTEM
+      promptText: REVERSE_PROMPT_SYSTEM,
+      signal: controller.signal
     });
+    if (tabId) await notifyAnalysisPhase(tabId, runningEntry.id, 'parsing_result', target);
     const updated = await updateHistoryEntry(runningEntry.id, {
       analysis,
       status: 'success',
@@ -149,25 +200,52 @@ async function runAnalysisForTab(tabId: number, target: ImageTarget): Promise<Hi
       error: undefined
     });
     const entry = updated || { ...runningEntry, analysis, status: 'success' as const };
-    await sendToTab(tabId, { type: 'ANALYSIS_RESULT', payload: { entry, target } });
+    if (tabId) await notifyTab(tabId, { type: 'ANALYSIS_RESULT', payload: { entry, target } });
     return entry;
   } catch (error) {
+    if (controller.signal.aborted || isAbortError(error)) {
+      const entry = await finalizeCanceledAnalysis(runningEntry.id);
+      if (tabId) await notifyTab(tabId, { type: 'ANALYSIS_CANCELED', payload: { entry, target } });
+      return entry;
+    }
     const message = errorToMessage(error);
     const updated = await updateHistoryEntry(runningEntry.id, { status: 'failed', error: message });
     const entry = updated || { ...runningEntry, status: 'failed' as const, error: message };
-    await sendToTab(tabId, { type: 'ANALYSIS_ERROR', payload: { entry, error: message, target } });
+    if (tabId) await notifyTab(tabId, { type: 'ANALYSIS_ERROR', payload: { entry, error: message, target } });
     throw error;
+  } finally {
+    activeAnalyses.delete(runningEntry.id);
   }
 }
 
-async function prepareImageDataUrl(target: ImageTarget, tabId: number): Promise<string> {
-  if (target.dataUrl) return resizeDataUrl(target.dataUrl);
+async function cancelAnalysis(id?: string): Promise<{ canceled: number }> {
+  const active = id ? [activeAnalyses.get(id)].filter((item): item is ActiveAnalysis => Boolean(item)) : [...activeAnalyses.values()];
+  for (const item of active) item.controller.abort(new DOMException(ANALYSIS_CANCELED_MESSAGE, 'AbortError'));
+  return { canceled: active.length };
+}
+
+async function finalizeCanceledAnalysis(id: string): Promise<HistoryEntry> {
+  const active = activeAnalyses.get(id);
+  const updated = await updateHistoryEntry(id, { status: 'canceled', error: ANALYSIS_CANCELED_MESSAGE });
+  return updated || {
+    ...(active?.entry || createRunningHistoryEntry({ title: 'Canceled analysis' })),
+    id,
+    status: 'canceled' as const,
+    error: ANALYSIS_CANCELED_MESSAGE
+  };
+}
+
+async function prepareImageDataUrl(target: ImageTarget, tabId: number | undefined, signal?: AbortSignal): Promise<string> {
+  throwIfAborted(signal);
+  if (target.dataUrl) return resizeDataUrl(target.dataUrl, undefined, undefined, signal);
   if (!target.srcUrl) throw new Error('No image source provided.');
   try {
-    return await resizeDataUrl(await urlToDataUrl(target.srcUrl));
+    return await resizeDataUrl(await urlToDataUrl(target.srcUrl, signal), undefined, undefined, signal);
   } catch (error) {
-    const fallback = await requestContentCanvasDataUrl(tabId, target.srcUrl);
-    if (fallback) return resizeDataUrl(fallback);
+    throwIfAborted(signal);
+    const fallback = tabId ? await requestContentCanvasDataUrl(tabId, target.srcUrl) : undefined;
+    throwIfAborted(signal);
+    if (fallback) return resizeDataUrl(fallback, undefined, undefined, signal);
     throw error;
   }
 }
@@ -278,6 +356,22 @@ async function sendToTab(tabId: number, message: unknown, options: { forceInject
   }
 }
 
+async function notifyTab(tabId: number, message: unknown): Promise<void> {
+  await sendToTab(tabId, message).catch(() => undefined);
+}
+
+async function notifyAnalysisPhase(tabId: number, id: string, phase: AnalysisPhase, target: ImageTarget): Promise<void> {
+  await notifyTab(tabId, { type: 'ANALYSIS_PHASE', payload: { id, phase, target } });
+}
+
+async function dispatchCommandToPageTabs(command: TabCommand): Promise<{ sent: number }> {
+  const tabs = await chrome.tabs.query({});
+  const tabIds = tabs.filter(isPageTab).map((tab) => tab.id).filter((tabId): tabId is number => typeof tabId === 'number');
+  if (!tabIds.length) throw new Error('No webpage tab found.');
+  await Promise.allSettled(tabIds.map((tabId) => sendToTab(tabId, { type: command }, { forceInject: true })));
+  return { sent: tabIds.length };
+}
+
 async function injectContentScript(tabId: number): Promise<void> {
   await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] }).catch(() => undefined);
 }
@@ -289,15 +383,18 @@ async function refreshOpenPageTabs(): Promise<void> {
 }
 
 async function getActivePageTabId(): Promise<number | undefined> {
-  const focusedWindow = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] });
-  const focusedTab = focusedWindow.tabs?.find((tab) => tab.active && isPageTab(tab));
-  if (focusedTab?.id) return focusedTab.id;
+  const queries: chrome.tabs.QueryInfo[] = [
+    { active: true, currentWindow: true },
+    { active: true, lastFocusedWindow: true },
+    { active: true }
+  ];
 
-  const [currentWindowTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (isPageTab(currentWindowTab)) return currentWindowTab.id;
+  for (const query of queries) {
+    const tab = (await chrome.tabs.query(query)).find(isPageTab);
+    if (tab?.id) return tab.id;
+  }
 
-  const activeTabs = await chrome.tabs.query({ active: true });
-  return activeTabs.find(isPageTab)?.id;
+  return undefined;
 }
 
 function isPageTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.Tab {
@@ -308,6 +405,25 @@ function isPageTab(tab: chrome.tabs.Tab | undefined): tab is chrome.tabs.Tab {
 
 function errorToMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException(ANALYSIS_CANCELED_MESSAGE, 'AbortError');
+}
+
+function isFloatingButtonCommand(command: TabCommand): boolean {
+  return command === 'SHOW_FLOATING_BUTTON' || command === 'HIDE_FLOATING_BUTTON';
+}
+
+async function saveFloatingButtonPreference(persistentFloatingButton: boolean): Promise<void> {
+  const settings = await getSettings();
+  await saveSettings({ ...settings, persistentFloatingButton });
+}
+
+function runBackgroundTask(task: () => Promise<unknown>): void {
+  void task().catch((error) => {
+    console.warn('[Zhijuan Prompt Card]', errorToMessage(error));
+  });
 }
 
 void Object.keys(GENERATOR_SITES);

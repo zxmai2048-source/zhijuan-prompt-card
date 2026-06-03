@@ -42,12 +42,16 @@ body::before {
 }
 
 button,
+label.file-trigger,
+label.orbit-action,
 input,
 select {
   font: inherit;
 }
 
-button {
+button,
+label.file-trigger,
+label.orbit-action {
   color: inherit;
   cursor: pointer;
   transition:
@@ -57,7 +61,9 @@ button {
     color 260ms var(--ease);
 }
 
-button:active {
+button:active,
+label.file-trigger:active,
+label.orbit-action:active {
   transform: translateY(1px) scale(0.99);
 }
 
@@ -67,10 +73,15 @@ button:disabled {
 }
 
 .file-input {
-  display: none;
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
-button svg {
+button svg,
+label svg {
   width: 16px;
   height: 16px;
   fill: none;
@@ -197,7 +208,18 @@ button svg {
   display: grid;
   gap: 7px;
   width: 126px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.puck-core:hover strong {
+  color: var(--soft);
 }
 
 .puck-core span {
@@ -232,6 +254,7 @@ button svg {
   font-weight: 900;
   backdrop-filter: blur(18px) saturate(145%);
   -webkit-backdrop-filter: blur(18px) saturate(145%);
+  user-select: none;
 }
 
 .orbit-action:hover {
@@ -261,6 +284,7 @@ button svg {
 
 .signal-card,
 .utility-dock,
+.storage-note,
 .history-item,
 .empty-state {
   border: 1px solid var(--line);
@@ -319,12 +343,13 @@ button.signal-card {
 
 .utility-dock {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 7px;
   padding: 8px;
 }
 
-.utility-dock button {
+.utility-dock button,
+.utility-dock .file-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -337,9 +362,11 @@ button.signal-card {
   color: var(--soft);
   font-size: 11px;
   font-weight: 900;
+  text-decoration: none;
 }
 
-.utility-dock button:hover {
+.utility-dock button:hover,
+.utility-dock .file-trigger:hover {
   background: rgba(130, 184, 155, 0.13);
   color: var(--text);
   transform: translateY(-1px);
@@ -390,6 +417,8 @@ button.signal-card {
 }
 
 .quick-grid button,
+.storage-note button,
+.history-preview-head button,
 .history-actions button {
   min-height: 35px;
   border: 1px solid var(--line);
@@ -401,6 +430,8 @@ button.signal-card {
 }
 
 .quick-grid button:hover,
+.storage-note button:hover,
+.history-preview-head button:hover,
 .history-actions button:hover {
   border-color: var(--line-hot);
   background: rgba(130, 184, 155, 0.12);
@@ -411,35 +442,77 @@ button.signal-card {
   gap: 10px;
 }
 
+.storage-note {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 11px;
+}
+
+.storage-note strong {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.storage-note p,
+.storage-note span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.42;
+}
+
+.storage-note button {
+  width: 100%;
+}
+
 .history-item {
-  padding: 12px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 10px;
 }
 
 .history-item__top {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 8px;
-  justify-content: space-between;
 }
 
 .history-item strong {
+  display: -webkit-box;
   min-width: 0;
+  overflow: hidden;
   font-size: 13px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .history-item__top span {
-  flex: 0 0 auto;
+  max-width: 62px;
+  overflow: hidden;
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(130, 184, 155, 0.13);
   color: #cfe4d4;
   font-size: 10px;
   font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.history-item__top span.failed,
 .history-item__top span.error {
   background: rgba(217, 133, 133, 0.13);
   color: #ffd0d0;
+}
+
+.history-item__top span.canceled {
+  background: rgba(183, 154, 112, 0.15);
+  color: #f1d7ad;
 }
 
 .history-item p {
@@ -447,6 +520,65 @@ button.signal-card {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.history-prompt-preview {
+  margin-top: 10px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 9px;
+  border: 1px solid rgba(130, 184, 155, 0.18);
+  border-radius: 13px;
+  background: rgba(130, 184, 155, 0.065);
+}
+
+.history-preview-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-prompt-preview span,
+.history-source span {
+  color: var(--lake);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-preview-head button {
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.history-prompt-preview p {
+  display: -webkit-box;
+  max-height: 62px;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--soft);
+  font-size: 10.8px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.history-source {
+  display: -webkit-box;
+  max-height: 42px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .error-text {
@@ -455,9 +587,17 @@ button.signal-card {
 
 .history-actions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
   margin-top: 10px;
+}
+
+.history-actions button {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-state {

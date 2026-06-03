@@ -1,6 +1,5 @@
-import { type DragEvent as ReactDragEvent, type ChangeEvent as ReactChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent as ReactDragEvent, type ChangeEvent as ReactChangeEvent, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../shared/defaults';
-import { GENERATOR_SITES } from '../shared/generators';
 import { fileToDataUrl, isImageFile } from '../shared/imageData';
 import { getSettings, saveSettings, getHistory } from '../shared/storage';
 import type { AppSettings, HistoryEntry, InterfaceLanguage, RuntimeResponse } from '../shared/types';
@@ -15,9 +14,9 @@ const popupCopy = {
     subtitle: 'Image source',
     ready: 'Ready',
     saved: 'Saved',
-    testing: 'Testing',
-    localApi: 'Local API',
-    pickImage: 'Pick image',
+    testing: 'Analyzing',
+    localApi: 'Status',
+    pickImage: 'Upload',
     captureArea: 'Capture',
     localFile: 'Local',
     pickHint: 'Selected image enters the lens.',
@@ -25,19 +24,21 @@ const popupCopy = {
     dropHint: 'Drop local image here',
     dropActive: 'Release to analyze',
     invalidFile: 'Only image files are supported.',
-    resultPanel: 'Result lens',
-    resultPanelBody: 'Source preview and prompt output',
+    resultPanel: 'Latest result',
+    resultPanelBody: 'Open History to copy prompts',
     history: 'History',
     settings: 'Settings',
+    showFloatingButton: 'Show',
+    hideFloatingButton: 'Hide',
     test: 'Test',
     model: 'Model',
     generator: 'Generator',
     testConnection: 'Test API',
     apiSettings: 'API settings',
-    activeTab: 'Current tab',
+    activeTab: 'Open a webpage first.',
     storage: 'Local',
     entries: 'entries',
-    actionHint: 'Choose an image, then read the prompt.',
+    actionHint: 'Choose an image, then open History.',
     dockLabel: 'Local workflow'
   },
   zh: {
@@ -45,9 +46,9 @@ const popupCopy = {
     subtitle: '图片源',
     ready: '准备就绪',
     saved: '已保存',
-    testing: '测试中',
-    localApi: '本地 API',
-    pickImage: '选图识别',
+    testing: '识别中',
+    localApi: '识别状态',
+    pickImage: '上传图片',
     captureArea: '框选',
     localFile: '本地',
     pickHint: '选图后进入结果镜头。',
@@ -55,19 +56,21 @@ const popupCopy = {
     dropHint: '本地图片拖到这里',
     dropActive: '松手识别',
     invalidFile: '只支持图片文件。',
-    resultPanel: '结果镜头',
-    resultPanelBody: '源图预览 + 提示词输出',
+    resultPanel: '最近结果',
+    resultPanelBody: '去历史复制提示词',
     history: '历史',
     settings: '设置',
+    showFloatingButton: '显示浮标',
+    hideFloatingButton: '隐藏',
     test: '测试',
     model: 'Model',
     generator: '生成器',
     testConnection: '测试 API',
     apiSettings: 'API 设置',
-    activeTab: '当前标签页',
+    activeTab: '先打开网页再用框选。',
     storage: '本地',
     entries: '条',
-    actionHint: '先选图片，再读提示词。',
+    actionHint: '上传后到历史查看。',
     dockLabel: '本地流程'
   }
 } as const;
@@ -85,15 +88,6 @@ export function App() {
   useEffect(() => {
     void refresh();
   }, []);
-
-  const apiHost = useMemo(() => {
-    try {
-      return new URL(settings.baseUrl).host;
-    } catch {
-      return settings.baseUrl;
-    }
-  }, [settings.baseUrl]);
-  const generatorLabel = GENERATOR_SITES[settings.defaultGeneratorSite]?.label || settings.defaultGeneratorSite;
 
   async function refresh() {
     const nextSettings = await getSettings();
@@ -115,14 +109,34 @@ export function App() {
     }
   }
 
-  async function sendActiveTabCommand(type: 'START_SELECTION' | 'START_IMAGE_PICK') {
+  async function sendActiveTabCommand(type: 'START_SELECTION' | 'START_IMAGE_PICK' | 'SHOW_FLOATING_BUTTON' | 'HIDE_FLOATING_BUTTON') {
+    if (type === 'SHOW_FLOATING_BUTTON' || type === 'HIDE_FLOATING_BUTTON') {
+      await sendFloatingButtonCommand(type);
+      return;
+    }
     const tab = await getActivePageTab();
     if (!tab?.id) {
       setStatus(labels.activeTab);
       return;
     }
-    chrome.runtime.sendMessage({ type: 'DISPATCH_TAB_COMMAND', payload: { command: type, tabId: tab.id } }, () => undefined);
-    window.close();
+    try {
+      await sendRuntimeMessage({ type: 'DISPATCH_TAB_COMMAND', payload: { command: type, tabId: tab.id } });
+      window.close();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function sendFloatingButtonCommand(type: 'SHOW_FLOATING_BUTTON' | 'HIDE_FLOATING_BUTTON') {
+    try {
+      const persistentFloatingButton = type === 'SHOW_FLOATING_BUTTON';
+      const nextSettings = await saveSettings({ ...settings, persistentFloatingButton });
+      setSettings(nextSettings);
+      await sendRuntimeMessage({ type: 'DISPATCH_TAB_COMMAND', payload: { command: type, allPageTabs: true } });
+      window.close();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
   }
 
   async function analyzeLocalFile(file: File | undefined) {
@@ -146,6 +160,8 @@ export function App() {
         }
       });
       setStatus(labels.saved);
+      setHistory(await getHistory());
+      window.setTimeout(() => window.close(), 250);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
@@ -187,7 +203,7 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <input ref={fileInputRef} className="file-input" type="file" accept="image/*" onChange={handleFileChange} />
+      <input id="zpc-local-file-input" ref={fileInputRef} className="file-input" type="file" accept="image/*" onChange={handleFileChange} />
       <header className="microbar">
         <div className="brand">
           <p>{labels.title}</p>
@@ -215,27 +231,27 @@ export function App() {
           <IconCrop />
           <span>{labels.captureArea}</span>
         </button>
-        <div className="puck-core">
+        <label className="puck-core" htmlFor="zpc-local-file-input">
           <span>{labels.subtitle}</span>
           <strong>{fileDragActive ? labels.dropActive : labels.dropHint}</strong>
-        </div>
-        <button type="button" className="orbit-action orbit-action--primary" onClick={() => void sendActiveTabCommand('START_IMAGE_PICK')}>
+        </label>
+        <label className="orbit-action orbit-action--primary" htmlFor="zpc-local-file-input">
           <IconImage />
           <span>{labels.pickImage}</span>
-        </button>
+        </label>
       </section>
 
       <section className="signal-strip">
         <button className="signal-card" type="button" onClick={() => void testConnection()}>
           <span>{labels.localApi}</span>
-          <strong>{apiHost}</strong>
-          <em>{status}</em>
+          <strong>{status}</strong>
+          <em>{labels.testConnection}</em>
         </button>
-        <div className="signal-card">
+        <button className="signal-card" type="button" onClick={() => setView('history')}>
           <span>{labels.resultPanel}</span>
           <strong>{labels.resultPanelBody}</strong>
           <em>{labels.model}: {settings.model}</em>
-        </div>
+        </button>
       </section>
 
       <section className="utility-dock" aria-label={labels.dockLabel}>
@@ -243,17 +259,21 @@ export function App() {
           <IconHistory />
           <span>{history.length}</span>
         </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
+        <label className="file-trigger" htmlFor="zpc-local-file-input">
           <IconUpload />
           <span>{labels.localFile}</span>
+        </label>
+        <button type="button" onClick={() => void sendActiveTabCommand('SHOW_FLOATING_BUTTON')}>
+          <IconEye />
+          <span>{labels.showFloatingButton}</span>
+        </button>
+        <button type="button" onClick={() => void sendActiveTabCommand('HIDE_FLOATING_BUTTON')}>
+          <IconEyeOff />
+          <span>{labels.hideFloatingButton}</span>
         </button>
         <button type="button" onClick={() => chrome.runtime.openOptionsPage()}>
           <IconSettings />
           <span>{labels.settings}</span>
-        </button>
-        <button type="button" onClick={() => void testConnection()}>
-          <IconPulse />
-          <span>{generatorLabel}</span>
         </button>
       </section>
     </main>
@@ -350,10 +370,20 @@ function IconSettings() {
   );
 }
 
-function IconPulse() {
+function IconEye() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 12h3.2l2-5.3 4 10.6 2.4-5.3H20" />
+      <path d="M3.8 12s3-5.2 8.2-5.2S20.2 12 20.2 12s-3 5.2-8.2 5.2S3.8 12 3.8 12Z" />
+      <path d="M12 9.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z" />
+    </svg>
+  );
+}
+
+function IconEyeOff() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3.8 12s3-5.2 8.2-5.2S20.2 12 20.2 12s-3 5.2-8.2 5.2S3.8 12 3.8 12Z" />
+      <path d="M5 5l14 14" />
     </svg>
   );
 }

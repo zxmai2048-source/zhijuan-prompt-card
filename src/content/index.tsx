@@ -1,11 +1,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { cropVisibleScreenshot, renderVisibleRegionFallback, startImagePicker, startSelectionOverlay } from './selectionOverlay';
+import { cancelActiveSelectionOverlay, cropVisibleScreenshot, renderVisibleRegionFallback, startImagePicker, startSelectionOverlay } from './selectionOverlay';
 import { Panel, type PanelState } from './panel';
 import panelCss from './panel.css';
+import { STORAGE_KEYS } from '../shared/defaults';
 import { fileToDataUrl, isImageFile } from '../shared/imageData';
 import { getSettings, saveSettings } from '../shared/storage';
-import type { GeneratorSite, ImageTarget, InterfaceLanguage, RuntimeResponse } from '../shared/types';
+import type { AnalysisPhase, GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, RuntimeResponse } from '../shared/types';
 
 const INSTANCE_KEY = '__zhijuanPromptCardInstanceId__';
 const instanceId = `${Date.now()}-${Math.random()}`;
@@ -13,14 +14,19 @@ const instanceId = `${Date.now()}-${Math.random()}`;
 let root: ReturnType<typeof createRoot> | undefined;
 let panelState: PanelState = { open: false, loading: false };
 let lastTarget: ImageTarget | undefined;
+let activeAnalysisId: string | undefined;
+let activeWorkToken = 0;
 let noticeTimer: number | undefined;
 let interfaceLanguage: InterfaceLanguage = 'zh';
 let languageRequestId = 0;
+let floatingHiddenByUser = false;
+const canceledAnalysisIds = new Set<string>();
 
 (window as unknown as Record<string, string>)[INSTANCE_KEY] = instanceId;
 
 ensurePanelRoot();
-void loadInterfaceLanguage();
+void loadSettingsIntoUi();
+installSettingsListener();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!isActiveInstance()) return false;
@@ -49,35 +55,77 @@ function ensurePanelRoot(): void {
   render();
 }
 
-async function loadInterfaceLanguage(): Promise<void> {
+async function loadSettingsIntoUi(): Promise<void> {
   const requestId = ++languageRequestId;
   const settings = await getSettings();
   if (requestId !== languageRequestId) return;
   interfaceLanguage = normalizeInterfaceLanguage(settings.interfaceLanguage);
+  if (settings.persistentFloatingButton && !floatingHiddenByUser) panelState = { ...panelState, open: true };
+  if (!settings.persistentFloatingButton && !hasActivePanelWork()) panelState = { ...panelState, open: false };
   render();
+}
+
+function installSettingsListener(): void {
+  chrome.storage?.onChanged?.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (changes[STORAGE_KEYS.settings]) void loadSettingsIntoUi();
+    if (changes[STORAGE_KEYS.history]) recoverSuccessfulHistory(changes[STORAGE_KEYS.history].newValue as HistoryEntry[] | undefined);
+  });
+}
+
+function hasActivePanelWork(): boolean {
+  return Boolean(panelState.loading || panelState.picking || panelState.error || panelState.entry?.analysis);
 }
 
 async function handleMessage(message: any): Promise<unknown> {
   switch (message.type) {
     case 'SHOW_PANEL':
-      setPanelState({ open: true, loading: false, error: undefined });
+    case 'SHOW_FLOATING_BUTTON':
+      floatingHiddenByUser = false;
+      void saveFloatingButtonPreference(true);
+      setPanelState({ open: true, loading: false, error: undefined, phase: undefined, startedAt: undefined });
+      return true;
+    case 'HIDE_FLOATING_BUTTON':
+      floatingHiddenByUser = true;
+      void saveFloatingButtonPreference(false);
+      setPanelState({ open: false, loading: false, error: undefined, notice: undefined, picking: undefined, phase: undefined, startedAt: undefined });
       return true;
     case 'ANALYSIS_STARTED':
       lastTarget = message.payload.target;
-      setPanelState({ open: true, loading: true, error: undefined, entry: panelState.entry?.analysis ? panelState.entry : message.payload.entry, target: lastTarget });
+      activeAnalysisId = message.payload.entry?.id;
+      if (activeAnalysisId) canceledAnalysisIds.delete(activeAnalysisId);
+      floatingHiddenByUser = false;
+      setPanelState({ open: true, loading: true, error: undefined, entry: message.payload.entry, target: lastTarget, phase: 'preparing_image', startedAt: panelState.startedAt || Date.now() });
+      return true;
+    case 'ANALYSIS_PHASE':
+      if (shouldIgnoreAnalysisMessage(message.payload.id)) return true;
+      lastTarget = message.payload.target || lastTarget;
+      setAnalysisPhase(message.payload.phase, lastTarget);
       return true;
     case 'ANALYSIS_RESULT':
+      if (shouldIgnoreAnalysisMessage(message.payload.entry?.id)) return true;
       lastTarget = message.payload.target;
-      setPanelState({ open: true, loading: false, error: undefined, entry: message.payload.entry, target: lastTarget });
+      activeAnalysisId = undefined;
+      applySuccessfulEntry(message.payload.entry, lastTarget);
       return true;
     case 'ANALYSIS_ERROR':
+      if (shouldIgnoreAnalysisMessage(message.payload.entry?.id)) return true;
       lastTarget = message.payload.target;
-      setPanelState({ open: true, loading: false, error: message.payload.error, entry: panelState.entry?.analysis ? panelState.entry : message.payload.entry, target: lastTarget });
+      if (message.payload.entry?.id === activeAnalysisId) activeAnalysisId = undefined;
+      if (isCurrentSuccessfulEntry(message.payload.entry?.id)) return true;
+      setPanelState({ open: !floatingHiddenByUser, loading: false, error: message.payload.error, entry: panelState.entry?.analysis ? panelState.entry : message.payload.entry, target: lastTarget, phase: undefined, startedAt: undefined });
+      return true;
+    case 'ANALYSIS_CANCELED':
+      if (message.payload.entry?.id && canceledAnalysisIds.has(message.payload.entry.id) && activeAnalysisId !== message.payload.entry.id) return true;
+      lastTarget = message.payload.target;
+      applyCanceledEntry(message.payload.entry, lastTarget);
       return true;
     case 'START_SELECTION':
+      floatingHiddenByUser = false;
       await runSelectionAnalysis();
       return true;
     case 'START_IMAGE_PICK':
+      floatingHiddenByUser = false;
       await runImagePickAnalysis();
       return true;
     case 'CANVAS_IMAGE_TO_DATA_URL':
@@ -88,34 +136,43 @@ async function handleMessage(message: any): Promise<unknown> {
 }
 
 async function runSelectionAnalysis(): Promise<void> {
-  setPanelState({ open: true, loading: false, error: undefined, notice: undefined, picking: 'selection' });
+  const workToken = beginWork();
+  setPanelState({ open: true, loading: false, error: undefined, notice: undefined, picking: 'selection', phase: undefined, startedAt: undefined });
   await waitForNextFrame();
+  if (!isCurrentWork(workToken)) return;
   const selection = await startSelectionOverlay(getSelectionCopy());
+  if (!isCurrentWork(workToken)) return;
   if (!selection) {
-    setPanelState({ open: true, loading: false, picking: undefined });
+    setPanelState({ open: true, loading: false, picking: undefined, phase: undefined, startedAt: undefined });
     return;
   }
   try {
+    startAnalysisPhase('capturing_region');
     const dataUrl = await captureSelectionDataUrl(selection.rect);
+    if (!isCurrentWork(workToken)) return;
     lastTarget = {
       kind: 'selection',
       dataUrl,
       pageUrl: location.href,
       title: document.title || 'Page selection'
     };
-    setPanelState({ open: true, loading: true, error: undefined, target: lastTarget, picking: undefined });
-    await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+    setPanelState({ open: true, loading: true, error: undefined, entry: undefined, target: lastTarget, picking: undefined, phase: 'preparing_image' });
+    const entry = await sendRuntimeMessage<HistoryEntry>({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+    if (isCurrentWork(workToken)) applyCompletedEntry(entry, lastTarget);
   } catch (error) {
-    setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
+    if (isCurrentWork(workToken) && !panelState.entry?.analysis) setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined, phase: undefined, startedAt: undefined });
   }
 }
 
 async function runImagePickAnalysis(): Promise<void> {
-  setPanelState({ open: true, loading: false, error: undefined, notice: undefined, picking: 'image' });
+  const workToken = beginWork();
+  setPanelState({ open: true, loading: false, error: undefined, notice: undefined, picking: 'image', phase: undefined, startedAt: undefined });
   await waitForNextFrame();
+  if (!isCurrentWork(workToken)) return;
   const picked = await startImagePicker(getImagePickerCopy());
+  if (!isCurrentWork(workToken)) return;
   if (!picked) {
-    setPanelState({ open: true, loading: false, notice: undefined, picking: undefined });
+    setPanelState({ open: true, loading: false, notice: undefined, picking: undefined, phase: undefined, startedAt: undefined });
     return;
   }
   lastTarget = {
@@ -124,11 +181,12 @@ async function runImagePickAnalysis(): Promise<void> {
     pageUrl: location.href,
     title: picked.title || document.title || 'Selected image'
   };
-  setPanelState({ open: true, loading: true, error: undefined, target: lastTarget, notice: undefined, picking: undefined });
+  startAnalysisPhase('preparing_image', lastTarget);
   try {
-    await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+    const entry = await sendRuntimeMessage<HistoryEntry>({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+    if (isCurrentWork(workToken)) applyCompletedEntry(entry, lastTarget);
   } catch (error) {
-    setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
+    if (isCurrentWork(workToken) && !panelState.entry?.analysis) setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined, phase: undefined, startedAt: undefined });
   }
 }
 
@@ -167,7 +225,12 @@ function render(): void {
     <Panel
       state={panelState}
       language={interfaceLanguage}
-      onClose={() => setPanelState({ open: false, loading: false })}
+      onClose={() => setPanelState({ open: true, notice: undefined, picking: undefined })}
+      onHide={() => {
+        floatingHiddenByUser = true;
+        void saveFloatingButtonPreference(false);
+        setPanelState({ open: false, loading: false, error: undefined, notice: undefined, picking: undefined });
+      }}
       onOpen={() => setPanelState({ open: true, loading: false, error: undefined })}
       onLanguageChange={(language) => void changeInterfaceLanguage(language)}
       onStartAreaSelect={() => void runSelectionAnalysis()}
@@ -176,6 +239,7 @@ function render(): void {
       onOpenSettings={() => void openSettings()}
       onCopy={(text, label) => void copyText(text, label)}
       onRegenerate={() => void regenerate()}
+      onCancelAnalysis={() => cancelCurrentWork()}
       onOpenGenerator={(siteId, prompt) => void openGenerator(siteId, prompt)}
       onToggleFavorite={(id, favorite) => void toggleFavorite(id, favorite)}
     />
@@ -184,22 +248,26 @@ function render(): void {
 
 async function runLocalFileAnalysis(file: File): Promise<void> {
   if (!isImageFile(file)) {
-    setPanelState({ open: true, loading: false, error: 'Only image files are supported.', picking: undefined });
+    setPanelState({ open: true, loading: false, error: 'Only image files are supported.', picking: undefined, phase: undefined, startedAt: undefined });
     return;
   }
-  setPanelState({ open: true, loading: true, error: undefined, notice: undefined, picking: undefined });
+  floatingHiddenByUser = false;
+  const workToken = beginWork();
+  startAnalysisPhase('reading_image');
   try {
     const dataUrl = await fileToDataUrl(file);
+    if (!isCurrentWork(workToken)) return;
     lastTarget = {
       kind: 'local',
       dataUrl,
       pageUrl: `local-file:${file.name}`,
       title: file.name || 'Local image'
     };
-    setPanelState({ open: true, loading: true, error: undefined, target: lastTarget, notice: undefined, picking: undefined });
-    await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+    setAnalysisPhase('preparing_image', lastTarget);
+    const entry = await sendRuntimeMessage<HistoryEntry>({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+    if (isCurrentWork(workToken)) applyCompletedEntry(entry, lastTarget);
   } catch (error) {
-    setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined });
+    if (isCurrentWork(workToken) && !panelState.entry?.analysis) setPanelState({ open: true, loading: false, error: errorToMessage(error), picking: undefined, phase: undefined, startedAt: undefined });
   }
 }
 
@@ -214,6 +282,15 @@ async function changeInterfaceLanguage(language: InterfaceLanguage): Promise<voi
   render();
 }
 
+async function saveFloatingButtonPreference(persistentFloatingButton: boolean): Promise<void> {
+  try {
+    const settings = await getSettings();
+    await saveSettings({ ...settings, persistentFloatingButton });
+  } catch {
+    // The direct message still updates this page; preference persistence is best effort.
+  }
+}
+
 async function copyText(text: string, label: string): Promise<void> {
   try {
     await writeClipboardText(text);
@@ -225,8 +302,91 @@ async function copyText(text: string, label: string): Promise<void> {
 
 async function regenerate(): Promise<void> {
   if (!lastTarget) return;
-  setPanelState({ open: true, loading: true, error: undefined });
-  await sendRuntimeMessage({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  const workToken = beginWork();
+  startAnalysisPhase('preparing_image', lastTarget);
+  const entry = await sendRuntimeMessage<HistoryEntry>({ type: 'RUN_ANALYSIS', payload: { target: lastTarget } });
+  if (isCurrentWork(workToken)) applyCompletedEntry(entry, lastTarget);
+}
+
+function beginWork(): number {
+  cancelActiveSelectionOverlay();
+  if (activeAnalysisId) {
+    canceledAnalysisIds.add(activeAnalysisId);
+    void sendRuntimeMessage({ type: 'CANCEL_ANALYSIS', payload: { id: activeAnalysisId } }).catch(() => undefined);
+    activeAnalysisId = undefined;
+  }
+  activeWorkToken += 1;
+  return activeWorkToken;
+}
+
+function isCurrentWork(token: number): boolean {
+  return token === activeWorkToken;
+}
+
+function startAnalysisPhase(phase: AnalysisPhase, target?: ImageTarget): void {
+  setPanelState({ open: true, loading: true, error: undefined, entry: undefined, notice: undefined, picking: undefined, target, phase, startedAt: Date.now() });
+}
+
+function setAnalysisPhase(phase: AnalysisPhase, target?: ImageTarget): void {
+  setPanelState({ open: true, loading: true, error: undefined, notice: undefined, picking: undefined, target: target || panelState.target, phase, startedAt: panelState.startedAt || Date.now() });
+}
+
+function cancelCurrentWork(): void {
+  const id = activeAnalysisId || (panelState.entry?.status === 'running' ? panelState.entry.id : undefined);
+  activeWorkToken += 1;
+  cancelActiveSelectionOverlay();
+  if (id) {
+    canceledAnalysisIds.add(id);
+    activeAnalysisId = undefined;
+    void sendRuntimeMessage({ type: 'CANCEL_ANALYSIS', payload: { id } }).catch(() => undefined);
+  }
+  const entry = panelState.entry?.status === 'running' ? { ...panelState.entry, status: 'canceled' as const, error: getCanceledText() } : panelState.entry;
+  setPanelState({ open: true, loading: false, error: undefined, entry, target: lastTarget || panelState.target, picking: undefined, notice: getCanceledText(), phase: undefined, startedAt: undefined });
+}
+
+function applyCompletedEntry(entry: HistoryEntry | undefined, target: ImageTarget | undefined): void {
+  if (entry?.status === 'canceled') {
+    applyCanceledEntry(entry, target);
+    return;
+  }
+  applySuccessfulEntry(entry, target);
+}
+
+function applyCanceledEntry(entry: HistoryEntry | undefined, target: ImageTarget | undefined): void {
+  if (entry?.id) canceledAnalysisIds.add(entry.id);
+  if (entry?.id === activeAnalysisId) activeAnalysisId = undefined;
+  setPanelState({ open: true, loading: false, error: undefined, entry: panelState.entry?.analysis ? panelState.entry : entry, target, picking: undefined, notice: getCanceledText(), phase: undefined, startedAt: undefined });
+}
+
+function shouldIgnoreAnalysisMessage(entryId: string | undefined): boolean {
+  if (!entryId) return false;
+  if (canceledAnalysisIds.has(entryId)) return true;
+  return Boolean(activeAnalysisId && activeAnalysisId !== entryId && panelState.loading);
+}
+
+function applySuccessfulEntry(entry: HistoryEntry | undefined, target: ImageTarget | undefined): void {
+  if (!entry?.analysis || entry.status !== 'success') return;
+  activeAnalysisId = undefined;
+  canceledAnalysisIds.delete(entry.id);
+  setPanelState({ open: !floatingHiddenByUser, loading: false, error: undefined, entry, target, picking: undefined, phase: undefined, startedAt: undefined });
+}
+
+function isCurrentSuccessfulEntry(entryId: string | undefined): boolean {
+  return Boolean(entryId && panelState.entry?.id === entryId && panelState.entry.analysis && panelState.entry.status === 'success');
+}
+
+function recoverSuccessfulHistory(history: HistoryEntry[] | undefined): void {
+  if (!Array.isArray(history) || (!panelState.loading && !panelState.error)) return;
+  const currentEntryId = panelState.entry?.id;
+  const entry = history.find((item) => item.status === 'success' && item.analysis && (currentEntryId ? item.id === currentEntryId : historyEntryMatchesTarget(item, lastTarget)));
+  if (entry) applySuccessfulEntry(entry, lastTarget);
+}
+
+function historyEntryMatchesTarget(entry: HistoryEntry, target: ImageTarget | undefined): boolean {
+  if (!target) return false;
+  if (target.srcUrl && entry.imageUrl === target.srcUrl) return true;
+  if (target.pageUrl && entry.pageUrl === target.pageUrl) return true;
+  return Boolean(target.title && entry.title === target.title);
 }
 
 async function openGenerator(siteId: GeneratorSite, prompt: string): Promise<void> {
@@ -248,6 +408,10 @@ function showNotice(notice: string): void {
   window.clearTimeout(noticeTimer);
   setPanelState({ notice });
   noticeTimer = window.setTimeout(() => setPanelState({ notice: undefined }), 1800);
+}
+
+function getCanceledText(): string {
+  return interfaceLanguage === 'zh' ? '已取消识别。' : 'Analysis canceled.';
 }
 
 function normalizeInterfaceLanguage(language: InterfaceLanguage): InterfaceLanguage {

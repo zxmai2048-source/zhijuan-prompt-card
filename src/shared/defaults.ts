@@ -11,7 +11,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apiKey: DEFAULT_API_KEY,
   model: DEFAULT_MODEL,
   interfaceLanguage: 'zh',
-  defaultGeneratorSite: 'chatgpt'
+  defaultGeneratorSite: 'chatgpt',
+  persistentFloatingButton: true
 };
 
 export const STORAGE_KEYS = {

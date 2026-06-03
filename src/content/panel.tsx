@@ -1,5 +1,5 @@
 import { type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
-import type { GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, PanelTab, PromptAnalysis } from '../shared/types';
+import type { AnalysisPhase, GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, PanelTab, PromptAnalysis } from '../shared/types';
 import { GENERATOR_SITES } from '../shared/generators';
 
 export interface PanelState {
@@ -10,6 +10,8 @@ export interface PanelState {
   target?: ImageTarget;
   notice?: string;
   picking?: 'image' | 'selection';
+  phase?: AnalysisPhase;
+  startedAt?: number;
 }
 
 export interface PanelProps {
@@ -17,6 +19,7 @@ export interface PanelProps {
   language: InterfaceLanguage;
   onOpen: () => void;
   onClose: () => void;
+  onHide: () => void;
   onLanguageChange: (language: InterfaceLanguage) => void;
   onStartAreaSelect: () => void;
   onStartImagePick: () => void;
@@ -24,6 +27,7 @@ export interface PanelProps {
   onOpenSettings: () => void;
   onCopy: (text: string, label: string) => void;
   onRegenerate: () => void;
+  onCancelAnalysis: () => void;
   onOpenGenerator: (siteId: GeneratorSite, prompt: string) => void;
   onToggleFavorite: (id: string, favorite: boolean) => void;
 }
@@ -47,15 +51,27 @@ const copy = {
     sourceArea: 'Captured region',
     sourcePage: 'Page source',
     sourceReady: 'Source ready',
-    promptQuality: 'Prompt quality',
-    qualityReady: 'ready',
-    qualityBuilding: 'building',
+    outputCompleteness: 'Output completeness',
+    processing: 'Processing',
+    complete: 'Complete',
+    needsReview: 'Needs review',
+    structureIssue: 'Structure issue',
+    missingPrefix: 'Missing',
+    elapsed: 'Elapsed',
+    slowHint: 'The model is still processing. You can keep waiting or stop this run.',
     chooseTitle: 'Choose an image source',
     chooseBody: 'Pick a page image, capture a region, or drop a local image file here.',
     dropTitle: 'Drop image file',
     dropBody: 'Drag PNG, JPG, WebP, GIF, AVIF, or BMP from Finder.',
     dropActive: 'Release to analyze',
-    loadingSteps: ['Reading the image', 'Extracting visual style', 'Building your prompt'],
+    loadingSteps: ['Reading image', 'Preparing image', 'Waiting for model', 'Parsing result'],
+    phaseLabels: {
+      reading_image: 'Reading image',
+      capturing_region: 'Capturing region',
+      preparing_image: 'Preparing image',
+      requesting_model: 'Waiting for model',
+      parsing_result: 'Parsing result'
+    },
     failed: 'Analysis failed',
     output: 'Prompt output',
     recreation: 'Recreation prompt',
@@ -63,12 +79,14 @@ const copy = {
     copyJson: 'Copy JSON',
     copyNegative: 'Copy Negative',
     regenerate: 'Regenerate',
+    cancel: 'Stop',
     saved: 'Saved',
     save: 'Save',
     openIn: 'Open in',
     collapse: 'Collapse',
     expand: 'Expand',
-    close: 'Close',
+    close: 'Collapse to button',
+    hide: 'Hide',
     settings: 'Settings',
     language: 'Language',
     promptCopied: 'Prompt copied',
@@ -91,15 +109,27 @@ const copy = {
     sourceArea: '截取区域',
     sourcePage: '页面来源',
     sourceReady: '来源就绪',
-    promptQuality: '提示词质量',
-    qualityReady: '就绪',
-    qualityBuilding: '生成中',
+    outputCompleteness: '输出完整度',
+    processing: '处理中',
+    complete: '完整',
+    needsReview: '需检查',
+    structureIssue: '结构异常',
+    missingPrefix: '缺少',
+    elapsed: '已等待',
+    slowHint: '模型仍在处理，可以继续等待或终止本次任务。',
     chooseTitle: '选择图片源',
     chooseBody: '点网页图片、截取区域，或把本地图片文件拖到这里。',
     dropTitle: '拖入图片文件',
     dropBody: '支持从 Finder 拖入 PNG、JPG、WebP、GIF、AVIF、BMP。',
     dropActive: '松手开始识别',
-    loadingSteps: ['读取图片', '提取视觉风格', '生成提示词'],
+    loadingSteps: ['读取图片', '准备图片', '等待模型', '解析结果'],
+    phaseLabels: {
+      reading_image: '读取图片',
+      capturing_region: '截取区域',
+      preparing_image: '准备图片',
+      requesting_model: '等待模型',
+      parsing_result: '解析结果'
+    },
     failed: '识别失败',
     output: '提示词输出',
     recreation: '复刻提示词',
@@ -107,12 +137,14 @@ const copy = {
     copyJson: '复制 JSON',
     copyNegative: '复制反向词',
     regenerate: '重新识别',
+    cancel: '终止',
     saved: '已保存',
     save: '保存',
     openIn: '打开',
     collapse: '折叠',
     expand: '展开',
-    close: '关闭',
+    close: '收起到浮标',
+    hide: '隐藏',
     settings: '设置',
     language: '语言',
     promptCopied: '已复制提示词',
@@ -128,9 +160,21 @@ export function Panel(props: PanelProps) {
   const analysis = state.entry?.analysis;
   const activeTab = usePreferredTab(analysis, language);
   const chrome = usePanelChrome();
-  const loadingProgress = useLoadingProgress(state.loading);
+  const elapsedSeconds = useElapsedSeconds(state.loading, state.startedAt);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
+  const autoExpandToken = getAutoExpandToken(state, fileDragActive);
+  const lastAutoExpandToken = useRef('');
+
+  useEffect(() => {
+    if (!autoExpandToken) {
+      lastAutoExpandToken.current = '';
+      return;
+    }
+    if (autoExpandToken === lastAutoExpandToken.current) return;
+    lastAutoExpandToken.current = autoExpandToken;
+    if (chrome.collapsed) chrome.setCollapsed(false);
+  }, [autoExpandToken, chrome.collapsed]);
 
   function analyzeFile(file: File | undefined) {
     if (!file) return;
@@ -139,26 +183,32 @@ export function Panel(props: PanelProps) {
   }
 
   function handleFileChange(event: ReactChangeEvent<HTMLInputElement>) {
-    analyzeFile(firstImageFile(event.currentTarget.files));
+    analyzeFile(firstImageFile(event.currentTarget.files) ?? firstFile(event.currentTarget.files));
     event.currentTarget.value = '';
   }
 
   function handleFileDrag(event: ReactDragEvent<HTMLElement>) {
     if (!hasFileDrag(event.dataTransfer)) return;
     event.preventDefault();
+    event.stopPropagation();
     event.dataTransfer.dropEffect = 'copy';
     setFileDragActive(true);
   }
 
   function handleFileDragLeave(event: ReactDragEvent<HTMLElement>) {
-    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const stillInside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+    if (stillInside || event.currentTarget.contains(event.relatedTarget as Node | null)) return;
     setFileDragActive(false);
   }
 
   function handleFileDrop(event: ReactDragEvent<HTMLElement>) {
     if (!hasFileDrag(event.dataTransfer)) return;
     event.preventDefault();
-    analyzeFile(firstImageFile(event.dataTransfer.files));
+    event.stopPropagation();
+    analyzeFile(firstImageFile(event.dataTransfer.files) ?? firstFile(event.dataTransfer.files));
   }
 
   if (!state.open) {
@@ -171,10 +221,6 @@ export function Panel(props: PanelProps) {
       aria-live="polite"
       data-state={state.loading ? 'loading' : analysis ? 'result' : state.error ? 'error' : 'ready'}
       style={{ left: chrome.position.x, top: chrome.position.y }}
-      onDragEnter={handleFileDrag}
-      onDragOver={handleFileDrag}
-      onDragLeave={handleFileDragLeave}
-      onDrop={handleFileDrop}
     >
       <div className="zpc-panel__edge" />
       <header
@@ -184,47 +230,75 @@ export function Panel(props: PanelProps) {
         onPointerUp={chrome.onPointerUp}
         onPointerCancel={chrome.onPointerUp}
       >
-        <div className="zpc-drag-orb" aria-hidden="true" />
-        <div className="zpc-title-stack">
-          <div className="zpc-kicker">{chrome.collapsed ? labels.lens : 'Zhijuan Prompt'}</div>
-          <h2>{state.loading ? labels.analyzing : analysis ? labels.output : state.picking === 'image' ? labels.pickingImage : state.picking === 'selection' ? labels.pickingSelection : labels.ready}</h2>
-        </div>
-        <div className="zpc-header-controls">
-          <LanguageToggle language={language} labels={labels} onChange={props.onLanguageChange} />
+        {chrome.collapsed ? (
           <button
-            className="zpc-icon-button"
+            className="zpc-collapsed-handle"
             type="button"
-            onClick={props.onOpenSettings}
-            aria-label={labels.settings}
-            title={labels.settings}
-          >
-            <IconSettings />
-          </button>
-          <button
-            className="zpc-icon-button"
-            type="button"
-            onClick={() => chrome.setCollapsed(!chrome.collapsed)}
+            onClick={(event) => {
+              if (chrome.consumeClickAfterDrag()) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+              }
+              chrome.setCollapsed(false);
+            }}
             aria-label={chrome.collapsed ? labels.expand : labels.collapse}
             title={chrome.collapsed ? labels.expand : labels.collapse}
           >
-            {chrome.collapsed ? <IconExpand /> : <IconCollapse />}
+            <span className="zpc-collapsed-core" aria-hidden="true" />
+            <IconExpand />
+            <span className="zpc-collapsed-orbit" aria-hidden="true" />
           </button>
-          <button className="zpc-icon-button" type="button" onClick={props.onClose} aria-label={labels.close} title={labels.close}>
-            <IconClose />
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="zpc-drag-orb" aria-hidden="true" />
+            <div className="zpc-title-stack">
+              <div className="zpc-kicker">Zhijuan Prompt</div>
+              <h2>{state.loading ? labels.analyzing : analysis ? labels.output : state.picking === 'image' ? labels.pickingImage : state.picking === 'selection' ? labels.pickingSelection : labels.ready}</h2>
+            </div>
+            <div className="zpc-header-controls">
+              <LanguageToggle language={language} labels={labels} onChange={props.onLanguageChange} />
+              <button
+                className="zpc-icon-button"
+                type="button"
+                onClick={props.onOpenSettings}
+                aria-label={labels.settings}
+                title={labels.settings}
+              >
+                <IconSettings />
+              </button>
+              <button
+                className="zpc-icon-button"
+                type="button"
+                onClick={() => chrome.setCollapsed(true)}
+                aria-label={labels.collapse}
+                title={labels.collapse}
+              >
+                <IconCollapse />
+              </button>
+              <button
+                className="zpc-icon-button"
+                type="button"
+                onClick={() => {
+                  chrome.setCollapsed(true);
+                  props.onClose();
+                }}
+                aria-label={labels.close}
+                title={labels.close}
+              >
+                <IconClose />
+              </button>
+              <button className="zpc-icon-button" type="button" onClick={props.onHide} aria-label={labels.hide} title={labels.hide}>
+                <IconHide />
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       {!chrome.collapsed ? (
         <div className="zpc-panel__body">
           <input ref={fileInputRef} className="zpc-file-input" type="file" accept="image/*" onChange={handleFileChange} />
-          {fileDragActive ? (
-            <div className="zpc-drop-overlay">
-              <IconUpload />
-              <strong>{labels.dropActive}</strong>
-              <span>{labels.dropBody}</span>
-            </div>
-          ) : null}
           <div className="zpc-workspace">
             <div className="zpc-command-row">
               <button className="zpc-command zpc-command--primary" type="button" onClick={props.onStartImagePick}>
@@ -243,18 +317,24 @@ export function Panel(props: PanelProps) {
             <button
               type="button"
               className={fileDragActive ? 'zpc-file-drop is-active' : 'zpc-file-drop'}
+              aria-label={labels.dropBody}
               onClick={() => fileInputRef.current?.click()}
+              onDragEnter={handleFileDrag}
+              onDragOver={handleFileDrag}
+              onDragLeave={handleFileDragLeave}
+              onDragEnd={() => setFileDragActive(false)}
+              onDrop={handleFileDrop}
             >
               <IconUpload />
-              <span>{labels.dropTitle}</span>
+              <span>{fileDragActive ? labels.dropActive : labels.dropTitle}</span>
               <strong>{labels.dropBody}</strong>
             </button>
 
-            {state.picking ? <PickingBlock mode={state.picking} labels={labels} /> : null}
-            {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} loadingProgress={loadingProgress} labels={labels} /> : null}
-            {state.loading ? <LoadingBlock labels={labels} progress={loadingProgress} /> : null}
+            {state.picking ? <PickingBlock mode={state.picking} labels={labels} onCancel={props.onCancelAnalysis} /> : null}
+            {state.target ? <TargetPreview target={state.target} analysis={analysis} loading={state.loading} phase={state.phase} labels={labels} uiLanguage={language} /> : null}
+            {state.loading ? <LoadingBlock labels={labels} phase={state.phase} elapsedSeconds={elapsedSeconds} onCancel={props.onCancelAnalysis} /> : null}
             {state.error ? <ErrorBlock error={state.error} labels={labels} /> : null}
-            {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} /> : null}
+            {!state.picking && !state.loading && !state.error && !analysis ? <ReadyBlock labels={labels} onClick={() => fileInputRef.current?.click()} /> : null}
             {analysis ? <ResultBlock {...props} analysis={analysis} activeTab={activeTab} labels={labels} uiLanguage={language} /> : null}
             {state.notice ? <div className="zpc-toast-inline">{state.notice}</div> : null}
           </div>
@@ -264,14 +344,18 @@ export function Panel(props: PanelProps) {
   );
 }
 
-function PickingBlock({ mode, labels }: { mode: 'image' | 'selection'; labels: (typeof copy)[UiLanguage] }) {
+function PickingBlock({ mode, labels, onCancel }: { mode: 'image' | 'selection'; labels: (typeof copy)[UiLanguage]; onCancel: () => void }) {
   return (
     <div className="zpc-surface zpc-picking">
       <div className="zpc-picking__mark">{mode === 'image' ? <IconImage /> : <IconCrop />}</div>
-      <div>
+      <div className="zpc-picking__body">
         <strong>{mode === 'image' ? labels.pickingImage : labels.pickingSelection}</strong>
         <p>{labels.pickingBody}</p>
       </div>
+      <button className="zpc-cancel-button" type="button" onClick={onCancel}>
+        <IconStop />
+        <span>{labels.cancel}</span>
+      </button>
     </div>
   );
 }
@@ -280,12 +364,15 @@ function TargetPreview(props: {
   target: ImageTarget;
   analysis?: PromptAnalysis;
   loading: boolean;
-  loadingProgress: number;
+  phase?: AnalysisPhase;
   labels: (typeof copy)[UiLanguage];
+  uiLanguage: UiLanguage;
 }) {
   const previewSrc = props.target.dataUrl || props.target.srcUrl;
-  const quality = useMemo(() => (props.analysis ? getPromptQuality(props.analysis) : undefined), [props.analysis]);
-  const qualityValue = props.loading ? `${props.loadingProgress}%` : quality ? `${quality.score}` : '--';
+  const completeness = useMemo(() => (props.analysis ? getOutputCompleteness(props.analysis, props.uiLanguage) : undefined), [props.analysis, props.uiLanguage]);
+  const phaseLabel = props.labels.phaseLabels[props.phase || 'preparing_image'];
+  const statusTitle = props.loading ? props.labels.processing : props.analysis ? props.labels.outputCompleteness : props.labels.ready;
+  const statusValue = props.loading ? phaseLabel : completeness ? completeness.label : props.labels.ready;
   const sourceLabel =
     props.target.kind === 'selection'
       ? props.labels.sourceArea
@@ -304,10 +391,9 @@ function TargetPreview(props: {
         <span>{sourceLabel}</span>
         <strong>{props.target.title || props.labels.sourceReady}</strong>
       </div>
-      <div className="zpc-quality" aria-label={props.labels.promptQuality}>
-        <span>{props.labels.promptQuality}</span>
-        <strong>{qualityValue}</strong>
-        <i style={{ ['--zpc-quality' as string]: `${props.loading ? props.loadingProgress : quality?.score || 0}%` }} />
+      <div className="zpc-source-status" aria-label={statusTitle}>
+        <span>{statusTitle}</span>
+        <strong>{statusValue}</strong>
       </div>
     </div>
   );
@@ -318,8 +404,21 @@ function firstImageFile(files: FileList | null): File | undefined {
   return [...files].find((file) => file.type.startsWith('image/') || /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(file.name));
 }
 
+function firstFile(files: FileList | null): File | undefined {
+  return files?.[0];
+}
+
 function hasFileDrag(dataTransfer: DataTransfer): boolean {
   return [...dataTransfer.types].includes('Files');
+}
+
+function getAutoExpandToken(state: PanelState, fileDragActive: boolean): string {
+  if (fileDragActive) return 'drag';
+  if (state.picking) return `picking:${state.picking}`;
+  if (state.loading) return `loading:${state.target?.title || state.target?.pageUrl || 'target'}`;
+  if (state.error) return `error:${state.error}`;
+  if (state.entry?.analysis) return `result:${state.entry.id}`;
+  return '';
 }
 
 function LanguageToggle(props: {
@@ -339,57 +438,62 @@ function LanguageToggle(props: {
   );
 }
 
-function ReadyBlock({ labels }: { labels: (typeof copy)[UiLanguage] }) {
+function ReadyBlock({ labels, onClick }: { labels: (typeof copy)[UiLanguage]; onClick: () => void }) {
   return (
-    <div className="zpc-surface zpc-ready">
+    <button type="button" className="zpc-surface zpc-ready zpc-ready-button" onClick={onClick}>
       <div className="zpc-ready__tile" />
       <div>
         <strong>{labels.chooseTitle}</strong>
         <p>{labels.chooseBody}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
-function LoadingBlock({ labels, progress }: { labels: (typeof copy)[UiLanguage]; progress: number }) {
-  const active = Math.min(labels.loadingSteps.length - 1, Math.floor(progress / 34));
+function LoadingBlock({ labels, phase, elapsedSeconds, onCancel }: { labels: (typeof copy)[UiLanguage]; phase?: AnalysisPhase; elapsedSeconds: number; onCancel: () => void }) {
+  const steps: AnalysisPhase[] = ['capturing_region', 'reading_image', 'preparing_image', 'requesting_model', 'parsing_result'];
+  const activePhase = phase || 'preparing_image';
 
   return (
     <div className="zpc-surface zpc-loading">
       <div className="zpc-loading__meter">
-        <span>{labels.qualityBuilding}</span>
-        <strong>{progress}%</strong>
-        <i style={{ ['--zpc-progress' as string]: `${progress}%` }} />
+        <span>{labels.phaseLabels[activePhase]}</span>
+        <strong>{labels.elapsed} {elapsedSeconds}s</strong>
+        <i />
       </div>
-      {labels.loadingSteps.map((step, index) => (
+      {steps.map((step) => (
         <div className="zpc-loading__row" key={step}>
-          <span className={index === active ? 'zpc-dot zpc-dot--active' : 'zpc-dot'} />
-          <span>{step}</span>
+          <span className={step === activePhase ? 'zpc-dot zpc-dot--active' : 'zpc-dot'} />
+          <span>{labels.phaseLabels[step]}</span>
         </div>
       ))}
+      {elapsedSeconds >= 30 ? <p className="zpc-loading__hint">{labels.slowHint}</p> : null}
+      <button className="zpc-cancel-button zpc-cancel-button--wide" type="button" onClick={onCancel}>
+        <IconStop />
+        <span>{labels.cancel}</span>
+      </button>
     </div>
   );
 }
 
-function useLoadingProgress(loading: boolean): number {
-  const [progress, setProgress] = useState(0);
+function useElapsedSeconds(loading: boolean, startedAt: number | undefined): number {
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!loading) {
-      setProgress(0);
+      setElapsed(0);
       return;
     }
-    setProgress(8);
-    const startedAt = Date.now();
+    const start = startedAt || Date.now();
+    const update = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    update();
     const timer = window.setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      const next = Math.min(92, 8 + Math.round(elapsed / 90));
-      setProgress(next);
-    }, 260);
+      update();
+    }, 1000);
     return () => window.clearInterval(timer);
-  }, [loading]);
+  }, [loading, startedAt]);
 
-  return progress;
+  return elapsed;
 }
 
 function ErrorBlock({ error, labels }: { error: string; labels: (typeof copy)[UiLanguage] }) {
@@ -415,7 +519,7 @@ function ResultBlock(
   const tabText = getTabText(analysis, tab);
   const entryId = props.state.entry?.id;
   const favorite = Boolean(props.state.entry?.favorite);
-  const quality = getPromptQuality(analysis);
+  const completeness = getOutputCompleteness(analysis, props.uiLanguage);
   const tabCopyLabel = getCopyLabelForTab(tab, labels);
   const tabCopyNotice = getCopyNoticeForTab(tab, labels);
 
@@ -433,7 +537,8 @@ function ResultBlock(
         <div className="zpc-result-head">
           <div>
             <span>{props.labels.output}</span>
-            <strong>{props.labels.promptQuality}: {quality.grade} / {quality.score}</strong>
+            <strong>{props.labels.outputCompleteness}: {completeness.label}</strong>
+            {completeness.missing.length ? <small>{props.labels.missingPrefix}: {completeness.missing.join(', ')}</small> : null}
           </div>
           <button type="button" className="zpc-copy-chip" onClick={() => props.onCopy(tabText, tabCopyNotice)}>
             {tabCopyLabel}
@@ -497,15 +602,85 @@ function getTags(analysis: PromptAnalysis, tab: PanelTab): string[] {
   return ['artifact control', 'clean anatomy', 'no text errors', 'stable detail'];
 }
 
-function getPromptQuality(analysis: PromptAnalysis): { score: number; grade: string } {
-  const fields = Object.values(analysis.json_prompt).flat();
-  const filledFields = fields.filter((value) => String(value).trim().length > 2).length;
-  const promptLength = analysis.recreation_prompt.trim().length;
-  const tagCount = new Set([...analysis.en_style_tags, ...analysis.zh_style_tags, ...analysis.json_prompt.quality_modifiers]).size;
-  const negativeReady = analysis.negative_prompt.trim().length > 20 ? 8 : 0;
-  const score = Math.min(98, Math.round(54 + filledFields * 2.1 + Math.min(18, promptLength / 38) + Math.min(12, tagCount * 1.4) + negativeReady));
-  const grade = score >= 92 ? 'A+' : score >= 86 ? 'A' : score >= 78 ? 'B+' : 'B';
-  return { score, grade };
+function getOutputCompleteness(analysis: PromptAnalysis, language: UiLanguage): { label: string; missing: string[] } {
+  const missing: string[] = [];
+  const addMissing = (key: string) => missing.push(completenessFieldLabel(key, language));
+
+  if (!analysis.zh.prompt.trim()) addMissing('zh.prompt');
+  if (!analysis.en.prompt.trim()) addMissing('en.prompt');
+  if (!analysis.ja.prompt.trim()) addMissing('ja.prompt');
+  if (!analysis.recreation_prompt.trim()) addMissing('recreation_prompt');
+  if (!analysis.negative_prompt.trim()) addMissing('negative_prompt');
+  if (!analysis.zh_style_tags.length && !analysis.en_style_tags.length && !analysis.ja_style_tags.length) addMissing('style_tags');
+
+  const jsonFields = analysis.json_prompt;
+  const requiredJsonFields: Array<keyof PromptAnalysis['json_prompt']> = [
+    'subject',
+    'action_pose',
+    'details_appearance',
+    'environment_background',
+    'lighting_atmosphere',
+    'composition_framing',
+    'style_camera',
+    'colors',
+    'materials',
+    'aspect_ratio',
+    'quality_modifiers',
+    'likely_generation_intent'
+  ];
+  for (const field of requiredJsonFields) {
+    const value = jsonFields[field];
+    const filled = Array.isArray(value) ? value.some((item) => item.trim()) : value.trim().length > 0;
+    if (!filled) addMissing(String(field));
+  }
+
+  if (!missing.length) return { label: language === 'zh' ? copy.zh.complete : copy.en.complete, missing };
+  if (missing.length <= 3) return { label: language === 'zh' ? copy.zh.needsReview : copy.en.needsReview, missing };
+  return { label: language === 'zh' ? copy.zh.structureIssue : copy.en.structureIssue, missing };
+}
+
+function completenessFieldLabel(key: string, language: UiLanguage): string {
+  const zh: Record<string, string> = {
+    'zh.prompt': '中文提示词',
+    'en.prompt': '英文提示词',
+    'ja.prompt': '日文提示词',
+    recreation_prompt: '复刻提示词',
+    negative_prompt: '反向词',
+    style_tags: '风格标签',
+    subject: '主体',
+    action_pose: '动作姿态',
+    details_appearance: '外观细节',
+    environment_background: '环境背景',
+    lighting_atmosphere: '光线氛围',
+    composition_framing: '构图',
+    style_camera: '风格镜头',
+    colors: '颜色',
+    materials: '材质',
+    aspect_ratio: '画幅比例',
+    quality_modifiers: '质量修饰词',
+    likely_generation_intent: '生成意图'
+  };
+  const en: Record<string, string> = {
+    'zh.prompt': 'Chinese prompt',
+    'en.prompt': 'English prompt',
+    'ja.prompt': 'Japanese prompt',
+    recreation_prompt: 'recreation prompt',
+    negative_prompt: 'negative prompt',
+    style_tags: 'style tags',
+    subject: 'subject',
+    action_pose: 'action/pose',
+    details_appearance: 'appearance details',
+    environment_background: 'environment',
+    lighting_atmosphere: 'lighting',
+    composition_framing: 'composition',
+    style_camera: 'style/camera',
+    colors: 'colors',
+    materials: 'materials',
+    aspect_ratio: 'aspect ratio',
+    quality_modifiers: 'quality modifiers',
+    likely_generation_intent: 'generation intent'
+  };
+  return (language === 'zh' ? zh : en)[key] || key;
 }
 
 function tabLabel(tab: PanelTab, language: UiLanguage): string {
@@ -538,11 +713,18 @@ interface PanelChromeState {
 }
 
 const PANEL_UI_STORAGE_KEY = 'zhijuan_prompt_panel_ui_v2';
+const PANEL_EXPANDED_WIDTH = 376;
+const PANEL_COLLAPSED_WIDTH = 38;
+const PANEL_COLLAPSED_HEIGHT = 38;
+const PANEL_MARGIN = 10;
+const DRAG_CLICK_TOLERANCE = 14;
 
 function usePanelChrome() {
   const [ui, setUi] = useState<PanelChromeState>(() => clampPanelUi(defaultPanelUi()));
   const uiRef = useRef(ui);
-  const [dragState, setDragState] = useState<{ pointerId: number; offsetX: number; offsetY: number } | undefined>();
+  const dragStateRef = useRef<{ pointerId: number; offsetX: number; offsetY: number; startX: number; startY: number } | undefined>(undefined);
+  const dragMovedRef = useRef(false);
+  const suppressClickRef = useRef(false);
 
   useEffect(() => {
     uiRef.current = ui;
@@ -562,24 +744,38 @@ function usePanelChrome() {
   }, []);
 
   function setCollapsed(collapsed: boolean) {
-    const next = clampPanelUi({ ...uiRef.current, collapsed });
+    const next = clampPanelUi(collapsed ? snapCollapsedToNearestEdge({ ...uiRef.current, collapsed }) : { ...uiRef.current, collapsed });
     uiRef.current = next;
     setUi(next);
     void writePanelUi(next);
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLElement>) {
-    if ((event.target as HTMLElement).closest('button')) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDragState({
+    if ((event.target as HTMLElement).closest('button') && !uiRef.current.collapsed) return;
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Synthetic and interrupted pointer streams may not have an active pointer.
+    }
+    dragMovedRef.current = false;
+    suppressClickRef.current = false;
+    dragStateRef.current = {
       pointerId: event.pointerId,
       offsetX: event.clientX - uiRef.current.x,
-      offsetY: event.clientY - uiRef.current.y
-    });
+      offsetY: event.clientY - uiRef.current.y,
+      startX: event.clientX,
+      startY: event.clientY
+    };
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLElement>) {
+    const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
+    const distance = Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY);
+    if (distance > DRAG_CLICK_TOLERANCE) {
+      dragMovedRef.current = true;
+      suppressClickRef.current = true;
+    }
     const next = clampPanelUi({
       ...uiRef.current,
       x: event.clientX - dragState.offsetX,
@@ -590,10 +786,31 @@ function usePanelChrome() {
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLElement>) {
+    const dragState = dragStateRef.current;
     if (dragState?.pointerId === event.pointerId) {
-      setDragState(undefined);
-      void writePanelUi(uiRef.current);
+      const shouldOpen = uiRef.current.collapsed && !dragMovedRef.current;
+      const next = shouldOpen ? clampPanelUi({ ...uiRef.current, collapsed: false }) : uiRef.current.collapsed ? clampPanelUi(snapCollapsedToNearestEdge(uiRef.current)) : uiRef.current;
+      uiRef.current = next;
+      setUi(next);
+      dragStateRef.current = undefined;
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture may already be released by the browser.
+      }
+      void writePanelUi(next);
+      if (suppressClickRef.current) {
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 180);
+      }
     }
+  }
+
+  function consumeClickAfterDrag(): boolean {
+    if (!suppressClickRef.current) return false;
+    suppressClickRef.current = false;
+    return true;
   }
 
   useEffect(() => {
@@ -607,27 +824,38 @@ function usePanelChrome() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  return { position: { x: ui.x, y: ui.y }, collapsed: ui.collapsed, setCollapsed, onPointerDown, onPointerMove, onPointerUp };
+  return { position: { x: ui.x, y: ui.y }, collapsed: ui.collapsed, setCollapsed, onPointerDown, onPointerMove, onPointerUp, consumeClickAfterDrag };
 }
 
 function defaultPanelUi(): PanelChromeState {
   return {
-    x: Math.max(8, window.innerWidth - 398),
-    y: 14,
-    collapsed: false
+    x: Math.max(PANEL_MARGIN, window.innerWidth - PANEL_COLLAPSED_WIDTH - PANEL_MARGIN),
+    y: Math.max(80, Math.round(window.innerHeight * 0.32)),
+    collapsed: true
   };
 }
 
 function clampPanelUi(input: PanelChromeState): PanelChromeState {
-  const width = input.collapsed ? Math.min(268, window.innerWidth - 16) : Math.min(376, window.innerWidth - 16);
-  const minX = 8;
-  const minY = 8;
-  const maxX = Math.max(minX, window.innerWidth - width - 8);
-  const maxY = Math.max(minY, window.innerHeight - 86);
+  const width = input.collapsed ? PANEL_COLLAPSED_WIDTH : Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+  const height = input.collapsed ? PANEL_COLLAPSED_HEIGHT : 86;
+  const minX = PANEL_MARGIN;
+  const minY = PANEL_MARGIN;
+  const maxX = Math.max(minX, window.innerWidth - width - PANEL_MARGIN);
+  const maxY = Math.max(minY, window.innerHeight - height - PANEL_MARGIN);
   return {
     x: Math.round(Math.min(Math.max(minX, input.x), maxX)),
     y: Math.round(Math.min(Math.max(minY, input.y), maxY)),
     collapsed: input.collapsed
+  };
+}
+
+function snapCollapsedToNearestEdge(input: PanelChromeState): PanelChromeState {
+  const leftX = PANEL_MARGIN;
+  const rightX = Math.max(leftX, window.innerWidth - PANEL_COLLAPSED_WIDTH - PANEL_MARGIN);
+  const panelCenter = input.x + PANEL_COLLAPSED_WIDTH / 2;
+  return {
+    ...input,
+    x: panelCenter < window.innerWidth / 2 ? leftX : rightX
   };
 }
 
@@ -664,6 +892,15 @@ function IconClose() {
   );
 }
 
+function IconHide() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3.8 12s3-5.2 8.2-5.2S20.2 12 20.2 12s-3 5.2-8.2 5.2S3.8 12 3.8 12Z" />
+      <path d="M5 5l14 14" />
+    </svg>
+  );
+}
+
 function IconCollapse() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -675,7 +912,9 @@ function IconCollapse() {
 function IconExpand() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 10h8M8 14h8" />
+      <path d="M10.8 15.4a4.6 4.6 0 1 0 0-9.2 4.6 4.6 0 0 0 0 9.2Z" />
+      <path d="m14.3 14.3 3.4 3.4" />
+      <path d="M10.8 8.7v4.2M8.7 10.8h4.2" />
     </svg>
   );
 }
@@ -705,6 +944,14 @@ function IconUpload() {
       <path d="M12 16V4.8" />
       <path d="m7.6 9.2 4.4-4.4 4.4 4.4" />
       <path d="M5.2 15.2v2.6c0 .9.7 1.6 1.6 1.6h10.4c.9 0 1.6-.7 1.6-1.6v-2.6" />
+    </svg>
+  );
+}
+
+function IconStop() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 8h8v8H8z" />
     </svg>
   );
 }

@@ -103,6 +103,7 @@
       function send(type, payload) {
         listener && listener({ type, payload }, {}, () => {});
       }
+      window.__zpcHarnessSend = send;
 
       setTimeout(() => {
         if (mode === 'loading') {

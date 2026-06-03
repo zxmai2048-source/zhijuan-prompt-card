@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS, GENERATOR_SITE_IDS } from '../shared/defaults';
 import { GENERATOR_SITES } from '../shared/generators';
 import { getSettings, saveSettings } from '../shared/storage';
@@ -13,6 +13,7 @@ const optionsCopy = {
     saved: 'Saved',
     testing: 'Testing',
     enabled: 'Enabled',
+    persistentFloatingButton: 'Persistent floating button',
     endpointSection: 'Endpoint',
     endpointBody: 'The extension sends selected images only to this API endpoint.',
     generationSection: 'Generation',
@@ -40,6 +41,7 @@ const optionsCopy = {
     saved: '已保存',
     testing: '测试中',
     enabled: '启用',
+    persistentFloatingButton: '常驻浮标',
     endpointSection: '连接端点',
     endpointBody: '插件只会把你主动选择的图片发送到这个 API 端点。',
     generationSection: '生成配置',
@@ -61,11 +63,24 @@ const optionsCopy = {
   }
 } as const;
 
+type SettingsSectionId = 'endpoint' | 'generation' | 'interface' | 'privacy';
+
 export function OptionsApp() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [status, setStatus] = useState<string>(optionsCopy.zh.ready);
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>('endpoint');
+  const endpointRef = useRef<HTMLDivElement>(null);
+  const generationRef = useRef<HTMLDivElement>(null);
+  const interfaceRef = useRef<HTMLDivElement>(null);
+  const privacyRef = useRef<HTMLElement>(null);
   const language = normalizeLanguage(settings.interfaceLanguage);
   const labels = optionsCopy[language];
+  const railItems: { id: SettingsSectionId; label: string }[] = [
+    { id: 'endpoint', label: `01 ${labels.endpointSection}` },
+    { id: 'generation', label: `02 ${labels.generationSection}` },
+    { id: 'interface', label: `03 ${labels.interfaceSection}` },
+    { id: 'privacy', label: `04 ${labels.privacy}` }
+  ];
 
   useEffect(() => {
     void getSettings().then((next) => {
@@ -91,6 +106,17 @@ export function OptionsApp() {
     }
   }
 
+  function jumpToSection(section: SettingsSectionId) {
+    const target = {
+      endpoint: endpointRef.current,
+      generation: generationRef.current,
+      interface: interfaceRef.current,
+      privacy: privacyRef.current
+    }[section];
+    setActiveSection(section);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+  }
+
   return (
     <main className="options-shell">
       <aside className="settings-rail">
@@ -99,15 +125,21 @@ export function OptionsApp() {
           <h1>{labels.settings}</h1>
         </div>
         <nav aria-label={labels.settings}>
-          <span className="is-active">01 {labels.endpointSection}</span>
-          <span>02 {labels.generationSection}</span>
-          <span>03 {labels.interfaceSection}</span>
-          <span>04 {labels.privacy}</span>
+          {railItems.map((item) => (
+            <button
+              className={activeSection === item.id ? 'rail-nav-item is-active' : 'rail-nav-item'}
+              type="button"
+              onClick={() => jumpToSection(item.id)}
+              key={item.id}
+            >
+              {item.label}
+            </button>
+          ))}
         </nav>
-        <div className="rail-status">
+        <button className="rail-status" type="button" onClick={() => void test()}>
           <span>{labels.ready}</span>
           <strong>{status}</strong>
-        </div>
+        </button>
       </aside>
 
       <section className="settings-workbench">
@@ -120,7 +152,7 @@ export function OptionsApp() {
           <span>{status}</span>
         </header>
 
-        <div className="settings-section settings-section--endpoint">
+        <div className="settings-section settings-section--endpoint" ref={endpointRef}>
           <div className="section-copy">
             <span>01</span>
             <h2>{labels.endpointSection}</h2>
@@ -142,7 +174,7 @@ export function OptionsApp() {
           </div>
         </div>
 
-        <div className="settings-section">
+        <div className="settings-section" ref={generationRef}>
           <div className="section-copy">
             <span>02</span>
             <h2>{labels.generationSection}</h2>
@@ -171,7 +203,7 @@ export function OptionsApp() {
           </div>
         </div>
 
-        <div className="settings-section settings-section--compact">
+        <div className="settings-section settings-section--compact" ref={interfaceRef}>
           <div className="section-copy">
             <span>03</span>
             <h2>{labels.interfaceSection}</h2>
@@ -197,6 +229,14 @@ export function OptionsApp() {
                 onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })}
               />
             </label>
+            <label className="toggle-row">
+              <span>{labels.persistentFloatingButton}</span>
+              <input
+                type="checkbox"
+                checked={settings.persistentFloatingButton}
+                onChange={(event) => setSettings({ ...settings, persistentFloatingButton: event.target.checked })}
+              />
+            </label>
           </div>
         </div>
 
@@ -213,7 +253,7 @@ export function OptionsApp() {
       </section>
 
       <aside className="trust-panel" aria-label={labels.privacy}>
-        <article>
+        <article ref={privacyRef}>
           <span>01</span>
           <h2>{labels.privacy}</h2>
           <p>{labels.privacyBody}</p>

@@ -30,7 +30,14 @@ const defaultSelectionOverlayCopy: SelectionOverlayCopy = {
   selected: 'Region selected'
 };
 
+let activeOverlayCancel: (() => void) | undefined;
+
+export function cancelActiveSelectionOverlay(): void {
+  activeOverlayCancel?.();
+}
+
 export function startSelectionOverlay(copy: SelectionOverlayCopy = defaultSelectionOverlayCopy): Promise<SelectionResult | undefined> {
+  cancelActiveSelectionOverlay();
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     const selection = document.createElement('div');
@@ -52,10 +59,12 @@ export function startSelectionOverlay(copy: SelectionOverlayCopy = defaultSelect
     let startY = 0;
     let dragging = false;
     let resolved = false;
+    const cancelCurrent = () => cleanup();
 
     const cleanup = (result?: SelectionResult) => {
       if (resolved) return;
       resolved = true;
+      if (activeOverlayCancel === cancelCurrent) activeOverlayCancel = undefined;
       overlay.remove();
       document.removeEventListener('keydown', onKeyDown, true);
       resolve(result);
@@ -100,10 +109,12 @@ export function startSelectionOverlay(copy: SelectionOverlayCopy = defaultSelect
     });
 
     document.addEventListener('keydown', onKeyDown, true);
+    activeOverlayCancel = cancelCurrent;
   });
 }
 
 export function startImagePicker(copy: ImagePickerCopy = defaultImagePickerCopy): Promise<PickedImageResult | undefined> {
+  cancelActiveSelectionOverlay();
   return new Promise((resolve) => {
     const veil = document.createElement('div');
     const frame = document.createElement('div');
@@ -128,10 +139,12 @@ export function startImagePicker(copy: ImagePickerCopy = defaultImagePickerCopy)
     let resolved = false;
     let locked = false;
     const clickArmedAt = performance.now() + 180;
+    const cancelCurrent = () => cleanup();
 
     const cleanup = (result?: PickedImageResult) => {
       if (resolved) return;
       resolved = true;
+      if (activeOverlayCancel === cancelCurrent) activeOverlayCancel = undefined;
       document.removeEventListener('pointermove', onPointerMove, true);
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('keydown', onKeyDown, true);
@@ -185,6 +198,7 @@ export function startImagePicker(copy: ImagePickerCopy = defaultImagePickerCopy)
     document.addEventListener('pointermove', onPointerMove, true);
     document.addEventListener('click', onClick, true);
     document.addEventListener('keydown', onKeyDown, true);
+    activeOverlayCancel = cancelCurrent;
   });
 }
 

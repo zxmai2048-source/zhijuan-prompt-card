@@ -2,6 +2,8 @@ export type InterfaceLanguage = 'zh' | 'en' | 'ja';
 
 export type GeneratorSite = 'chatgpt' | 'codex' | 'jimeng' | 'gemini' | 'midjourney' | 'lovart';
 
+export type AnalysisPhase = 'reading_image' | 'capturing_region' | 'preparing_image' | 'requesting_model' | 'parsing_result';
+
 export interface AppSettings {
   enabled: boolean;
   baseUrl: string;
@@ -9,6 +11,7 @@ export interface AppSettings {
   model: string;
   interfaceLanguage: InterfaceLanguage;
   defaultGeneratorSite: GeneratorSite;
+  persistentFloatingButton: boolean;
 }
 
 export interface PromptAnalysis {
@@ -45,7 +48,7 @@ export interface HistoryEntry {
   title: string;
   favorite: boolean;
   analysis?: PromptAnalysis;
-  status: 'success' | 'failed' | 'running';
+  status: 'success' | 'failed' | 'running' | 'canceled';
   error?: string;
 }
 

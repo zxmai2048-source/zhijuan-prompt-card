@@ -122,8 +122,9 @@ body::before {
   gap: 8px;
 }
 
-.settings-rail nav span {
+.rail-nav-item {
   display: block;
+  width: 100%;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -131,21 +132,31 @@ body::before {
   color: var(--muted);
   font-size: 12px;
   font-weight: 850;
+  text-align: left;
 }
 
-.settings-rail nav span.is-active {
+.rail-nav-item.is-active {
   border-color: var(--line-hot);
   background: rgba(130, 184, 155, 0.14);
   color: var(--text);
 }
 
+.rail-nav-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-hot);
+  background: rgba(130, 184, 155, 0.11);
+  color: var(--text);
+}
+
 .rail-status {
   display: grid;
+  width: 100%;
   gap: 5px;
   padding: 13px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.045);
+  text-align: left;
 }
 
 .rail-status span {

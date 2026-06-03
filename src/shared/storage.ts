@@ -61,6 +61,18 @@ export async function updateHistoryEntry(id: string, patch: Partial<HistoryEntry
   return updated;
 }
 
+export async function failRunningHistoryEntries(error = '上次识别未完成，已自动结束。'): Promise<void> {
+  const history = await getHistory();
+  const next = history.map((entry) => (entry.status === 'running' ? { ...entry, status: 'failed' as const, error } : entry));
+  await writeLocal({ [STORAGE_KEYS.history]: next });
+}
+
+export async function compactHistoryStorage(): Promise<void> {
+  const history = await getHistory();
+  const next = history.map((entry) => (entry.imageUrl?.startsWith('data:') ? { ...entry, imageUrl: undefined } : entry));
+  await writeLocal({ [STORAGE_KEYS.history]: next });
+}
+
 export async function deleteHistoryEntry(id: string): Promise<HistoryEntry[]> {
   const next = (await getHistory()).filter((entry) => entry.id !== id);
   await writeLocal({ [STORAGE_KEYS.history]: next });
@@ -104,7 +116,8 @@ function normalizeSettings(input?: Partial<AppSettings>): AppSettings {
     apiKey: input?.apiKey ?? DEFAULT_SETTINGS.apiKey,
     model: input?.model?.trim() || DEFAULT_SETTINGS.model,
     interfaceLanguage: input?.interfaceLanguage || DEFAULT_SETTINGS.interfaceLanguage,
-    defaultGeneratorSite: input?.defaultGeneratorSite || DEFAULT_SETTINGS.defaultGeneratorSite
+    defaultGeneratorSite: input?.defaultGeneratorSite || DEFAULT_SETTINGS.defaultGeneratorSite,
+    persistentFloatingButton: input?.persistentFloatingButton ?? DEFAULT_SETTINGS.persistentFloatingButton
   };
 }
 

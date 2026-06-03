@@ -1,39 +1,53 @@
-export async function urlToDataUrl(url: string): Promise<string> {
+export async function urlToDataUrl(url: string, signal?: AbortSignal): Promise<string> {
+  throwIfAborted(signal);
   if (url.startsWith('data:')) return url;
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
+  throwIfAborted(signal);
   if (!response.ok) throw new Error(`Image fetch failed: ${response.status} ${response.statusText}`);
   return blobToDataUrl(await response.blob());
 }
 
 export async function fileToDataUrl(file: File): Promise<string> {
   if (!isImageFile(file)) throw new Error('Only image files are supported.');
-  return blobToDataUrl(file);
+  return resizeDataUrl(await blobToDataUrl(file));
 }
 
 export function isImageFile(file: File): boolean {
-  return file.type.startsWith('image/') || /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(file.name);
+  return isSupportedOrConvertibleImageType(file.type) || /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(file.name);
 }
 
-export async function resizeDataUrl(input: string, maxSide = 2200, quality = 0.9): Promise<string> {
-  if (typeof createImageBitmap === 'undefined' || typeof OffscreenCanvas === 'undefined') return input;
-
-  const blob = await dataUrlToBlob(input);
-  const bitmap = await createImageBitmap(blob);
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-  if (scale >= 1) {
-    bitmap.close?.();
+export async function resizeDataUrl(input: string, maxSide = 2200, quality = 0.9, signal?: AbortSignal): Promise<string> {
+  throwIfAborted(signal);
+  const { mime } = dataUrlToMimeAndBase64(input);
+  const unsupportedMime = !isApiSupportedImageMime(mime);
+  if (typeof createImageBitmap === 'undefined') {
+    if (unsupportedMime) throw new Error('This image format cannot be converted by Chrome. Use JPG, PNG, GIF, or WebP.');
     return input;
   }
 
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
-  const canvas = new OffscreenCanvas(width, height);
-  const context = canvas.getContext('2d');
-  if (!context) return input;
-  context.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close?.();
-  const output = await canvas.convertToBlob({ type: 'image/jpeg', quality });
-  return blobToDataUrl(output);
+  const blob = await dataUrlToBlob(input);
+  throwIfAborted(signal);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(blob);
+  } catch {
+    throw new Error('图片无法被 Chrome 解码。请换成 JPG、PNG、GIF 或 WebP 后再上传。');
+  }
+  throwIfAborted(signal);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const normalizedScale = unsupportedMime ? 1 : scale;
+  const width = Math.max(1, Math.round(bitmap.width * normalizedScale));
+  const height = Math.max(1, Math.round(bitmap.height * normalizedScale));
+  try {
+    const output = await drawBitmapToPngDataUrl(bitmap, width, height);
+    return output;
+  } finally {
+    bitmap.close?.();
+  }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException('Analysis canceled.', 'AbortError');
 }
 
 export function dataUrlToMimeAndBase64(dataUrl: string): { mime: string; base64: string } {
@@ -42,9 +56,39 @@ export function dataUrlToMimeAndBase64(dataUrl: string): { mime: string; base64:
   return { mime: match[1], base64: match[2] };
 }
 
+export function isApiSupportedImageMime(mime: string): boolean {
+  return ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mime.toLowerCase());
+}
+
+function isSupportedOrConvertibleImageType(mime: string): boolean {
+  return [...['image/avif', 'image/bmp'], 'image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mime.toLowerCase());
+}
+
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const response = await fetch(dataUrl);
   return response.blob();
+}
+
+async function drawBitmapToPngDataUrl(bitmap: ImageBitmap, width: number, height: number): Promise<string> {
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(width, height);
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas is unavailable.');
+    context.drawImage(bitmap, 0, 0, width, height);
+    return blobToDataUrl(await canvas.convertToBlob({ type: 'image/png' }));
+  }
+
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas is unavailable.');
+    context.drawImage(bitmap, 0, 0, width, height);
+    return canvas.toDataURL('image/png');
+  }
+
+  throw new Error('This image format cannot be converted by Chrome. Use JPG, PNG, GIF, or WebP.');
 }
 
 async function blobToDataUrl(blob: Blob): Promise<string> {
