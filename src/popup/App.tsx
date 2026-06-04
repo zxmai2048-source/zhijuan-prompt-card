@@ -79,7 +79,7 @@ export function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [status, setStatus] = useState<string>(popupCopy.zh.ready);
-  const [view, setView] = useState<ViewMode>('home');
+  const [view, setView] = useState<ViewMode>(() => (window.location.hash === '#history' ? 'history' : 'home'));
   const [fileDragActive, setFileDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const language = normalizeLanguage(settings.interfaceLanguage);

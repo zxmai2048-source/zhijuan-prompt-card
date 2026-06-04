@@ -236,6 +236,7 @@ function render(): void {
       onStartAreaSelect={() => void runSelectionAnalysis()}
       onStartImagePick={() => void runImagePickAnalysis()}
       onAnalyzeFile={(file) => void runLocalFileAnalysis(file)}
+      onOpenHistory={() => void openHistory()}
       onOpenSettings={() => void openSettings()}
       onCopy={(text, label) => void copyText(text, label)}
       onRegenerate={() => void regenerate()}
@@ -396,6 +397,10 @@ async function openGenerator(siteId: GeneratorSite, prompt: string): Promise<voi
 
 async function openSettings(): Promise<void> {
   await sendRuntimeMessage({ type: 'OPEN_OPTIONS_PAGE' });
+}
+
+async function openHistory(): Promise<void> {
+  await sendRuntimeMessage({ type: 'OPEN_HISTORY_PAGE' });
 }
 
 async function toggleFavorite(id: string, favorite: boolean): Promise<void> {

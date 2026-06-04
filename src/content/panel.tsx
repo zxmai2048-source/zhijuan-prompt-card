@@ -1,4 +1,4 @@
-import { type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalysisPhase, GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, PanelTab, PromptAnalysis } from '../shared/types';
 import { GENERATOR_SITES } from '../shared/generators';
 
@@ -24,6 +24,7 @@ export interface PanelProps {
   onStartAreaSelect: () => void;
   onStartImagePick: () => void;
   onAnalyzeFile: (file: File) => void;
+  onOpenHistory: () => void;
   onOpenSettings: () => void;
   onCopy: (text: string, label: string) => void;
   onRegenerate: () => void;
@@ -87,6 +88,8 @@ const copy = {
     expand: 'Expand',
     openPanel: 'Open image prompt panel',
     floatingLabel: 'Prompt lens',
+    quickActions: 'Floating actions',
+    promptHistory: 'Prompt history',
     close: 'Collapse to button',
     hide: 'Hide',
     settings: 'Settings',
@@ -147,6 +150,8 @@ const copy = {
     expand: '展开',
     openPanel: '打开识图面板',
     floatingLabel: '识图',
+    quickActions: '悬浮快捷操作',
+    promptHistory: '历史提示词',
     close: '收起到浮标',
     hide: '隐藏',
     settings: '设置',
@@ -238,26 +243,41 @@ export function Panel(props: PanelProps) {
         onPointerCancel={chrome.onPointerUp}
       >
         {chrome.collapsed ? (
-          <button
-            className="zpc-collapsed-handle"
-            type="button"
-            onClick={(event) => {
-              if (chrome.consumeClickAfterDrag()) {
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-              }
-              chrome.setCollapsed(false);
-            }}
-            aria-label={labels.openPanel}
-            title={labels.openPanel}
-          >
-            <span className="zpc-collapsed-glyph" aria-hidden="true">
-              <IconImage />
-            </span>
-            <span className="zpc-collapsed-badge" aria-hidden="true" />
-            <span className="zpc-collapsed-label">{labels.floatingLabel}</span>
-          </button>
+          <>
+            <button
+              className="zpc-collapsed-handle"
+              type="button"
+              onClick={(event) => {
+                if (chrome.consumeClickAfterDrag()) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  return;
+                }
+                chrome.setCollapsed(false);
+              }}
+              aria-label={labels.openPanel}
+              title={labels.openPanel}
+            >
+              <span className="zpc-collapsed-glyph" aria-hidden="true">
+                <IconImage />
+              </span>
+              <span className="zpc-collapsed-badge" aria-hidden="true" />
+            </button>
+            <div className="zpc-collapsed-actions" aria-label={labels.quickActions}>
+              <CollapsedActionButton label={labels.pickImage} onClick={props.onStartImagePick}>
+                <IconImage />
+              </CollapsedActionButton>
+              <CollapsedActionButton label={labels.captureArea} onClick={props.onStartAreaSelect}>
+                <IconCrop />
+              </CollapsedActionButton>
+              <CollapsedActionButton label={labels.promptHistory} onClick={props.onOpenHistory}>
+                <IconHistory />
+              </CollapsedActionButton>
+              <CollapsedActionButton label={labels.settings} onClick={props.onOpenSettings}>
+                <IconSettings />
+              </CollapsedActionButton>
+            </div>
+          </>
         ) : (
           <>
             <div className="zpc-drag-orb" aria-hidden="true" />
@@ -405,6 +425,26 @@ function TargetPreview(props: {
         <strong>{statusValue}</strong>
       </div>
     </div>
+  );
+}
+
+function CollapsedActionButton(props: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      className="zpc-collapsed-action"
+      type="button"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        props.onClick();
+      }}
+      aria-label={props.label}
+      title={props.label}
+    >
+      {props.children}
+      <span>{props.label}</span>
+    </button>
   );
 }
 
@@ -951,6 +991,15 @@ function IconStop() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M8 8h8v8H8z" />
+    </svg>
+  );
+}
+
+function IconHistory() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5.5 5.6h13M5.5 12h13M5.5 18.4h8.8" />
+      <path d="M4.8 4.4v15.2" />
     </svg>
   );
 }
