@@ -85,6 +85,8 @@ const copy = {
     openIn: 'Open in',
     collapse: 'Collapse',
     expand: 'Expand',
+    openPanel: 'Open image prompt panel',
+    floatingLabel: 'Prompt lens',
     close: 'Collapse to button',
     hide: 'Hide',
     settings: 'Settings',
@@ -143,6 +145,8 @@ const copy = {
     openIn: '打开',
     collapse: '折叠',
     expand: '展开',
+    openPanel: '打开识图面板',
+    floatingLabel: '识图',
     close: '收起到浮标',
     hide: '隐藏',
     settings: '设置',
@@ -215,11 +219,14 @@ export function Panel(props: PanelProps) {
     return null;
   }
 
+  const collapsedEdge = chrome.position.x < window.innerWidth / 2 ? 'left' : 'right';
+
   return (
     <section
       className={chrome.collapsed ? 'zpc-panel zpc-panel--collapsed' : 'zpc-panel'}
       aria-live="polite"
       data-state={state.loading ? 'loading' : analysis ? 'result' : state.error ? 'error' : 'ready'}
+      data-edge={collapsedEdge}
       style={{ left: chrome.position.x, top: chrome.position.y }}
     >
       <div className="zpc-panel__edge" />
@@ -242,12 +249,14 @@ export function Panel(props: PanelProps) {
               }
               chrome.setCollapsed(false);
             }}
-            aria-label={chrome.collapsed ? labels.expand : labels.collapse}
-            title={chrome.collapsed ? labels.expand : labels.collapse}
+            aria-label={labels.openPanel}
+            title={labels.openPanel}
           >
-            <span className="zpc-collapsed-core" aria-hidden="true" />
-            <IconExpand />
-            <span className="zpc-collapsed-orbit" aria-hidden="true" />
+            <span className="zpc-collapsed-glyph" aria-hidden="true">
+              <IconImage />
+            </span>
+            <span className="zpc-collapsed-badge" aria-hidden="true" />
+            <span className="zpc-collapsed-label">{labels.floatingLabel}</span>
           </button>
         ) : (
           <>
@@ -714,8 +723,8 @@ interface PanelChromeState {
 
 const PANEL_UI_STORAGE_KEY = 'zhijuan_prompt_panel_ui_v2';
 const PANEL_EXPANDED_WIDTH = 376;
-const PANEL_COLLAPSED_WIDTH = 38;
-const PANEL_COLLAPSED_HEIGHT = 38;
+const PANEL_COLLAPSED_WIDTH = 46;
+const PANEL_COLLAPSED_HEIGHT = 46;
 const PANEL_MARGIN = 10;
 const DRAG_CLICK_TOLERANCE = 14;
 
@@ -905,16 +914,6 @@ function IconCollapse() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6 12h12" />
-    </svg>
-  );
-}
-
-function IconExpand() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M10.8 15.4a4.6 4.6 0 1 0 0-9.2 4.6 4.6 0 0 0 0 9.2Z" />
-      <path d="m14.3 14.3 3.4 3.4" />
-      <path d="M10.8 8.7v4.2M8.7 10.8h4.2" />
     </svg>
   );
 }
