@@ -139,6 +139,21 @@ async function clickShadow(page, spec) {
   return rect;
 }
 
+async function collapsedActionState(page) {
+  return page.evaluate(() => {
+    const root = document.getElementById('zhijuan-prompt-root')?.shadowRoot;
+    const actions = [...(root?.querySelectorAll('.zpc-collapsed-actions') || [])].map((element) => {
+      const style = getComputedStyle(element);
+      return { opacity: Number(style.opacity), pointerEvents: style.pointerEvents };
+    });
+    const buttons = [...(root?.querySelectorAll('.zpc-collapsed-action') || [])].map((element) => {
+      const style = getComputedStyle(element);
+      return { opacity: Number(style.opacity), pointerEvents: style.pointerEvents };
+    });
+    return { actions, buttons };
+  });
+}
+
 async function scrollPanel(page, deltaY) {
   const rect = await shadowRect(page, { selector: '.zpc-panel__body' });
   await page.mouse.move(rect.x + rect.w / 2, rect.y + Math.min(rect.h - 20, Math.max(20, rect.h / 2)));
@@ -401,9 +416,23 @@ async function run() {
     await page.waitForTimeout(300);
     evidence.checks.push('collapse_ok');
 
+    await page.mouse.move(1220, 780);
+    await page.waitForTimeout(350);
+    const hiddenActions = await collapsedActionState(page);
+    if (!hiddenActions.actions.length || hiddenActions.actions.some((action) => action.opacity > 0.05 || action.pointerEvents !== 'none')) {
+      throw new Error(`collapsed actions did not hide on mouse leave ${JSON.stringify(hiddenActions)}`);
+    }
+    evidence.checks.push('collapsed_actions_hide_on_mouse_leave_ok');
+
     const handleRect = await shadowRect(page, { selector: '.zpc-collapsed-handle' });
     await page.mouse.move(handleRect.x + handleRect.w / 2, handleRect.y + handleRect.h / 2);
     await page.waitForTimeout(400);
+    const shownActions = await collapsedActionState(page);
+    if (!shownActions.actions.length || shownActions.actions.some((action) => action.opacity < 0.9 || action.pointerEvents !== 'auto')) {
+      throw new Error(`collapsed actions did not show on hover ${JSON.stringify(shownActions)}`);
+    }
+    evidence.checks.push('collapsed_actions_show_on_hover_ok');
+
     await clickShadow(page, { text: '历史提示词', exact: true });
     await page.waitForFunction(
       () => {
