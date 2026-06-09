@@ -3,8 +3,8 @@ const manifest = {
   name: 'Zhijuan Prompt Card',
   description: 'Local-first image to prompt reverse prompt tool.',
   version: '0.1.0',
-  permissions: ['contextMenus', 'storage', 'scripting', 'activeTab', 'clipboardWrite'],
-  host_permissions: ['http://127.0.0.1/*', 'http://localhost/*', 'https://*/*', 'http://*/*', 'file:///*'],
+  permissions: ['contextMenus', 'storage', 'scripting', 'clipboardWrite'],
+  host_permissions: ['<all_urls>', 'file:///*'],
   background: { service_worker: 'background.js', type: 'module' },
   action: {
     default_title: 'Zhijuan Prompt Card',

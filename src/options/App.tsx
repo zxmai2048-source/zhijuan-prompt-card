@@ -31,7 +31,7 @@ const optionsCopy = {
     privacy: 'Privacy boundary',
     privacyBody: 'No account, no analytics, no extension cloud. Page images are analyzed only after you pick an image or capture a region.',
     permissions: 'Permission posture',
-    permissionsBody: 'Content script is used for the floating panel, activeTab for capture, storage for local settings and history, clipboardWrite for copy actions.'
+    permissionsBody: 'Content script is used for the floating panel, <all_urls> host access for visible-tab capture, storage for local settings and history, clipboardWrite for copy actions.'
   },
   zh: {
     title: 'Zhijuan Prompt',
@@ -59,7 +59,7 @@ const optionsCopy = {
     privacy: '隐私边界',
     privacyBody: '无账号、无统计、无扩展云端。只有你主动选择图片或截取区域后才会分析页面图片。',
     permissions: '权限说明',
-    permissionsBody: 'content script 用于浮动面板，activeTab 用于截图，storage 用于本地设置和历史，clipboardWrite 用于复制。'
+    permissionsBody: 'content script 用于浮动面板，<all_urls> 主机权限用于真实可见标签页截图，storage 用于本地设置和历史，clipboardWrite 用于复制。'
   }
 } as const;
 

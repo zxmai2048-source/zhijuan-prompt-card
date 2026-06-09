@@ -205,6 +205,10 @@ export function Panel(props: PanelProps) {
     if (chrome.collapsed) chrome.setCollapsed(false);
   }, [autoExpandToken, chrome.collapsed]);
 
+  useEffect(() => {
+    syncPanelHostBounds(state.open, chrome.position, chrome.collapsed);
+  }, [state.open, chrome.position.x, chrome.position.y, chrome.collapsed]);
+
   function analyzeFile(file: File | undefined) {
     if (!file) return;
     setFileDragActive(false);
@@ -877,6 +881,8 @@ const PANEL_COLLAPSED_WIDTH = 46;
 const PANEL_COLLAPSED_HEIGHT = 46;
 const PANEL_MARGIN = 10;
 const DRAG_CLICK_TOLERANCE = 14;
+const COLLAPSED_ACTION_SPACE = 96;
+const COLLAPSED_LABEL_SPACE = 112;
 
 function usePanelChrome() {
   const [ui, setUi] = useState<PanelChromeState>(() => clampPanelUi(defaultPanelUi()));
@@ -988,9 +994,46 @@ function usePanelChrome() {
 
 function defaultPanelUi(): PanelChromeState {
   return {
-    x: Math.max(PANEL_MARGIN, window.innerWidth - PANEL_COLLAPSED_WIDTH - PANEL_MARGIN),
+    x: PANEL_MARGIN,
     y: Math.max(80, Math.round(window.innerHeight * 0.32)),
     collapsed: true
+  };
+}
+
+function syncPanelHostBounds(open: boolean, position: { x: number; y: number }, collapsed: boolean): void {
+  const host = document.getElementById('zhijuan-prompt-root');
+  if (!host) return;
+
+  const bounds = open ? getPanelHostBounds(position, collapsed) : { left: 0, top: 0, width: 0, height: 0 };
+  Object.assign(host.style, {
+    position: 'fixed',
+    left: `${bounds.left}px`,
+    top: `${bounds.top}px`,
+    width: `${bounds.width}px`,
+    height: `${bounds.height}px`,
+    zIndex: '2147483647',
+    overflow: 'visible'
+  });
+}
+
+function getPanelHostBounds(position: { x: number; y: number }, collapsed: boolean): { left: number; top: number; width: number; height: number } {
+  if (!collapsed) {
+    return {
+      left: position.x,
+      top: position.y,
+      width: Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2),
+      height: Math.min(Math.round(window.innerHeight * 0.74), window.innerHeight - PANEL_MARGIN * 2)
+    };
+  }
+
+  const isLeftEdge = position.x < window.innerWidth / 2;
+  const left = isLeftEdge ? position.x : Math.max(0, position.x - COLLAPSED_LABEL_SPACE);
+  const top = Math.max(0, position.y - COLLAPSED_ACTION_SPACE);
+  return {
+    left,
+    top,
+    width: PANEL_COLLAPSED_WIDTH + COLLAPSED_LABEL_SPACE,
+    height: Math.min(window.innerHeight - top, PANEL_COLLAPSED_HEIGHT + COLLAPSED_ACTION_SPACE * 2)
   };
 }
 

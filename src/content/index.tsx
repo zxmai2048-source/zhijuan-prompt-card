@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { cancelActiveSelectionOverlay, cropVisibleScreenshot, renderVisibleRegionFallback, startImagePicker, startSelectionOverlay } from './selectionOverlay';
+import { cancelActiveSelectionOverlay, cropVisibleScreenshot, startImagePicker, startSelectionOverlay } from './selectionOverlay';
 import { Panel, type PanelState } from './panel';
 import panelCss from './panel.css';
 import { STORAGE_KEYS } from '../shared/defaults';
@@ -200,12 +200,8 @@ function waitForNextFrame(): Promise<void> {
 }
 
 async function captureSelectionDataUrl(rect: DOMRect): Promise<string> {
-  try {
-    const capture = await sendRuntimeMessage<string>({ type: 'CAPTURE_VISIBLE_TAB' });
-    return cropVisibleScreenshot(capture, rect);
-  } catch {
-    return renderVisibleRegionFallback(rect);
-  }
+  const capture = await sendRuntimeMessage<string>({ type: 'CAPTURE_VISIBLE_TAB' });
+  return cropVisibleScreenshot(capture, rect);
 }
 
 async function imageElementToDataUrl(srcUrl: string): Promise<string> {

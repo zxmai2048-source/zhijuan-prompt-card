@@ -2,7 +2,8 @@ import { dataUrlToMimeAndBase64 } from './imageData';
 import { parsePromptAnalysis } from './jsonRepair';
 import type { AppSettings, PromptAnalysis } from './types';
 
-const API_TIMEOUT_MS = 90_000;
+const API_TIMEOUT_MS = 180_000;
+const API_TIMEOUT_SECONDS = API_TIMEOUT_MS / 1_000;
 const API_RETRY_DELAYS_MS = [800, 1_800];
 const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
@@ -50,7 +51,7 @@ export async function analyzeImageWithApi(input: {
     } catch (error) {
       if (isAbortError(error)) {
         if (input.signal?.aborted) throw error;
-        throw new Error('API 请求超过 90 秒未返回。');
+        throw new Error(`API 请求超过 ${API_TIMEOUT_SECONDS} 秒未返回。`);
       }
       if (attempt < API_RETRY_DELAYS_MS.length && isRetryableTransportError(error)) {
         await delay(API_RETRY_DELAYS_MS[attempt], input.signal);

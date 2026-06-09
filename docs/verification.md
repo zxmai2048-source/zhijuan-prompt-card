@@ -44,7 +44,7 @@
 ## BridgeDeck
 
 - Base URL: `http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1`
-- API key: `dummy`
+- API key: `local-bridge`
 - Model: `gpt-5.5`
 - Vision request: pass
 - Schema parse through `analyzeImageWithApi`: pass
@@ -54,8 +54,17 @@
 - Generator open: pass, Gemini tab opened.
 - History after image analysis: pass, one successful local entry.
 - Screenshot selection overlay: pass, full-viewport overlay and drag selection render correctly.
-- Screenshot region analysis: pass, selected icon region analyzed through the content-side fallback when Chrome denies non-user-gesture `captureVisibleTab`.
-- Capture path: implemented primary `chrome.tabs.captureVisibleTab` path, with DOM-render fallback for non-user-gesture automation or denied capture.
+- Screenshot region analysis: pass, selected region is captured through `chrome.tabs.captureVisibleTab` and cropped from the real visible-tab bitmap.
+- Capture path: real visible-tab capture only; denied capture now surfaces as an error instead of falling back to DOM-rendered pseudo screenshots.
+
+## Bilibili E2E
+
+- Command: pass, `npm run e2e:bilibili`
+- Extension load: pass, temporary Chromium profile loaded unpacked `dist`.
+- Bilibili content script: pass, `zhijuan-prompt-root` shadow root injected.
+- Region capture target preview: pass, saved data URL at `/Users/jinjungao/work/zhijuan prompt card/tmp/browser-tests/pw-capture-region-target-preview-1781003986886.png`.
+- Region capture pixels: pass, `width=360`, `height=170`, `blackRatio=0`, `brightRatio=0.9633040935672514`.
+- Full flow: pass, region capture, copy prompt, copy JSON, favorite toggle, regenerate, image pick, local file, collapse, history, and language toggle.
 
 ## Example Output JSON
 

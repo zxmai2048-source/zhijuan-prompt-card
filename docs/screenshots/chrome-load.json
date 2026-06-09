@@ -28,5 +28,5 @@
     },
     "afterDragRemoved": true
   },
-  "capturePath": "Primary chrome.tabs.captureVisibleTab is implemented. Automation uses DOM-render fallback when Chrome denies non-user-gesture capture."
+  "capturePath": "Real chrome.tabs.captureVisibleTab capture only. Denied capture surfaces as an error instead of using DOM-render fallback."
 }

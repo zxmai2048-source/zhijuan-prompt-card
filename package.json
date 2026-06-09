@@ -8,14 +8,15 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "check:storage": "tsx scripts/check-storage.ts",
-    "check:url": "tsx scripts/check-url.ts"
+    "check:url": "tsx scripts/check-url.ts",
+    "e2e:bilibili": "node scripts/e2e-bilibili-extension.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
     "@types/chrome": "latest",
@@ -23,6 +24,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "esbuild": "latest",
+    "playwright": "^1.60.0",
     "tsx": "latest"
   }
 }

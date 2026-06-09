@@ -1,7 +1,7 @@
 import type { AppSettings, GeneratorSite } from './types';
 
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1';
-export const DEFAULT_API_KEY = 'dummy';
+export const DEFAULT_API_KEY = 'local-bridge';
 export const DEFAULT_MODEL = 'gpt-5.5';
 export const HISTORY_LIMIT = 120;
 
