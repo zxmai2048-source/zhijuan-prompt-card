@@ -1,5 +1,22 @@
 # Verification
 
+## Release 0.2.0
+
+- Clean install: pass, `npm ci`.
+- Typecheck: pass, `npm run typecheck`.
+- Storage check: pass, `npm run check:storage`.
+- URL check: pass, `npm run check:url`.
+- Build: pass, `npm run build`.
+- Visual history smoke: pass, `npm run smoke:history`.
+- Bilibili E2E: pass, `npm run e2e:bilibili`.
+- Release package: pass, `npm run release:package`.
+- Release scan: pass, `npm run release:check`.
+- Package output: `release/zhijuan-prompt-card-0.2.0.zip`.
+- Zip manifest: pass, manifest `version` is `0.2.0`.
+- Zip required notices: pass, includes `LICENSE`, `NOTICE`, `PRIVACY.md`, `THIRD_PARTY_NOTICES.md`.
+- Precise zip secret scan: pass, no matches for private account paths, API keys, API key environment names, bearer tokens, or local absolute home paths.
+- Old unsafe test package: removed from `release/` and quarantined under ignored `tmp/quarantine/`.
+
 ## Build
 
 - Typecheck: pass, `npm run typecheck`
@@ -10,7 +27,7 @@
 
 ## UI Redesign V2
 
-- `zhijuan-super-image-gen`: pass, accepted run `/Users/jinjungao/work/zhijuan-super-image-gen/imageops/runs/20260523-180424-black-glass-clean-ui-board`
+- `zhijuan-super-image-gen`: pass, accepted run `20260523-180424-black-glass-clean-ui-board`
 - Design board: pass, `docs/ui-redesign-v2/design-board.html`
 - Component detail board: pass, `docs/ui-redesign-v2/component-detail.html`
 - Component spec: pass, `docs/ui-redesign-v2/component-spec.md`
@@ -62,7 +79,7 @@
 - Command: pass, `npm run e2e:bilibili`
 - Extension load: pass, temporary Chromium profile loaded unpacked `dist`.
 - Bilibili content script: pass, `zhijuan-prompt-root` shadow root injected.
-- Region capture target preview: pass, saved data URL at `/Users/jinjungao/work/zhijuan prompt card/tmp/browser-tests/pw-capture-region-target-preview-1781003986886.png`.
+- Region capture target preview: pass, saved data URL under `tmp/browser-tests/`.
 - Region capture pixels: pass, `width=360`, `height=170`, `blackRatio=0`, `brightRatio=0.9633040935672514`.
 - Full flow: pass, region capture, copy prompt, copy JSON, favorite toggle, regenerate, image pick, local file, collapse, history, and language toggle.
 

@@ -1,113 +1,134 @@
-# ImageGen Prompts
+# README ImageGen Brief
 
-这些提示词用于生成 README、GitHub Social Preview、商店宣传图和 onboarding 概念图。
+本文件记录 README 配图的 ImageGen 生成要求、参考图和约束。
 
-原则：
+## Reference Standard / 参考标准
 
-- 每张图生成 4 个候选。
-- 选择最克制、最不花哨的一张。
-- 不追求复杂，追求高级和可信。
-- Hero / Social 可以用生成图。
-- 产品证明必须优先使用真实截图。
-- 不要让生成图模拟真实品牌 Logo。
-- 不要塞过多 UI 小字，否则质量会下降。
+Curated draft ad assets were used only as visual quality references. They are not included in this repository and are not product screenshots.
 
-## 1. README Hero
+当前真实插件 UI 和功能参考来自仓库内截图：
 
-目标：生成 README 首屏概念图，用于展示 Zhijuan Prompt Card 的整体气质。
+- `docs/assets/readme/quick-history.png`
+- `docs/assets/readme/popup-history.png`
+- `docs/assets/readme/floating-panel.png`
+- `docs/assets/readme/options.png`
+- `docs/assets/readme/popup.png`
 
-画幅：16:9
+## Shared Direction / 共用方向
 
-构图：深色浏览器窗口、被选中的图片、旁边浮动提示词面板。
+- 深色哑光石墨背景。
+- 黑色磨砂玻璃 UI。
+- 克制的低饱和湖绿色 / mint-green 点缀。
+- 产品截图是功能依据，但生成图可以重新设计版式。
+- 不要过度约束构图，给 ImageGen 设计空间。
+- README 图片是 product graphic，不是假装真实截图。
 
-风格：克制、专业、local-first 创作工具气质。
+## Must Communicate / 必须表达
 
-必须出现：暗色 UI、暖橙强调、结构化提示词卡片、非品牌抽象图片。
+- 本地优先 local-first。
+- BYOK / user-configured endpoint。
+- 上传图片、右键网页图片、框选页面区域。
+- 中文 / 英文 / JSON / Recreation / Negative Prompt。
+- Visual History、local thumbnails、quick history。
+- 无登录、无 credits、无 telemetry。
 
-避免：真实公司 Logo、假品牌、卡通、赛博朋克、过度霓虹、大量小字。
+## Avoid / 禁止
 
-最终提示词：
+- 不要具体 URL。
+- 不要 `/accounts` path。
+- 不要 API key 值。
+- 不要 model alias 值。
+- 不要 license 文案。
+- 不要官方平台 logo。
+- 不要把图做成旧版功能。
+- 不要 orange SVG 风格。
+- 不要 cyberpunk、霓虹、假 AI dashboard。
+- 不要密集小字，避免生成错字。
+
+## Generated Assets / 已生成资产
+
+- `docs/assets/readme/imagegen/readme-banner.png` - Direct ImageGen output with Chinese / English text.
+- `docs/assets/readme/imagegen/readme-workflow.png` - Direct ImageGen output with Chinese / English text.
+- `docs/assets/readme/imagegen/readme-local-first.png` - Direct ImageGen output with Chinese / English text.
+
+Final README images are direct ImageGen outputs. Text is requested inside the ImageGen prompt; no local text overlay is used.
+
+## Prompt 0: README Banner
 
 ```text
-Create a polished editorial hero image for an open-source browser extension called "Zhijuan Prompt Card". Show a dark minimal browser window with a floating prompt panel beside a selected image. The selected image is abstract and non-branded, like a cinematic product photo or fashion editorial reference. The floating panel shows clean structured prompt cards without readable tiny text. Visual feeling: local-first creative tool, privacy-aware, precise, calm, professional. Dark neutral interface, warm orange accent, soft white typography, subtle glass reflection, realistic desktop lighting, high-end software product photography. No logos from real companies, no fake brand names, no clutter, no cartoon style, no cyberpunk, no excessive neon.
+Create a polished README hero banner for the Chrome extension "Zhijuan Prompt Card". Use the user-provided banner reference for composition, the real plugin UI screenshots for product truth, and the curated old ads only as visual quality/style reference.
+
+Composition: left brand/title block, large angled browser window in the center, selected image crop rectangle, floating prompt output panel on the right, thumbnail visual history strip, and a small bottom workflow row. Dark frosted-glass software UI, matte graphite background, restrained mint-green accents.
+
+Text must be rendered directly by ImageGen. Use only these exact visible bilingual strings:
+"Zhijuan Prompt Card"
+"Local-first image to prompt"
+"本地优先 · 图片反推 Prompt"
+"BYOK / Your API"
+"Local History / 本地历史"
+"No telemetry / 无遥测"
+"Structured Output / 结构化输出"
+"Select Image / 选图"
+"Your Vision Endpoint / 你的视觉端点"
+"Structured Prompts / 结构化 Prompt"
+"Copy & Create / 复制并创作"
+
+Product truth: local-first does not mean offline-only. Selected images go only to the user's configured OpenAI-compatible vision endpoint. Local thumbnails and prompt history stay in browser local storage. Outputs include Chinese Prompt, English Prompt, Japanese Prompt, JSON Prompt, Recreation Prompt, Negative Prompt, and Style Tags.
+
+Avoid fake URLs, account paths, API keys, model values, license text, official platform logos, extra invented words, orange old SVG style, cyberpunk neon, and dense tiny paragraphs.
 ```
 
-## 2. GitHub Social Preview
-
-目标：GitHub 仓库分享卡片。
-
-画幅：1200x630
-
-构图：中心暗色浏览器面板，紧凑 prompt card system，保留标题空间。
-
-风格：高级、简洁、GitHub README 可信风格。
-
-必须出现：标题区域、"Zhijuan Prompt Card"、"Local-first image to prompt"。
-
-避免：外部 Logo、卡通插画、过度 AI 符号。
-
-最终提示词：
+## Prompt 1: Workflow
 
 ```text
-Design a premium GitHub social preview image for "Zhijuan Prompt Card", an open-source local-first image-to-prompt Chrome extension. Center a minimal dark browser panel and a compact prompt card system. Include a single large title area for "Zhijuan Prompt Card" and a short subtitle "Local-first image to prompt". Use dark graphite background, warm orange accent line, subtle grid, calm editorial software aesthetic. Leave generous negative space. No external logos, no cartoon illustration, no overdesigned AI symbols.
+Create a polished workflow visual for the Chrome extension "Zhijuan Prompt Card". Use the real plugin UI screenshots for product truth and curated old ads as visual quality reference.
+
+Composition: three clear stages from left to right with real-feeling dark UI panels and gentle arrows: image input, prompt deconstruction, prompt reuse. Include a central browser/extension prompt panel and a right-side visual history/output grid. Dark frosted-glass software UI, matte graphite background, restrained mint-green accents.
+
+Text must be rendered directly by ImageGen. Use only these exact visible bilingual strings:
+"Workflow / 工作流"
+"Image -> Prompt / 图片 -> Prompt"
+"1 Select / 选图"
+"Upload, right-click, or crop / 上传、右键或框选"
+"2 Deconstruct / 反推"
+"Structured prompts / 结构化 Prompt"
+"3 Reuse / 复用"
+"Copy & create / 复制并创作"
+"CN / 中文"
+"EN / 英文"
+"JP / 日文"
+"JSON / 结构化"
+"Recreate / 重绘"
+"Negative / 负面词"
+"History / 历史"
+
+Product truth: users can upload local images, right-click webpage images, or crop page regions. The selected image is sent to the user's configured OpenAI-compatible vision endpoint. Outputs include Chinese Prompt, English Prompt, Japanese Prompt, JSON Prompt, Recreation Prompt, Negative Prompt, and Style Tags. Visual history is local.
+
+Avoid fake URLs, account paths, API keys, model values, license text, official platform logos, extra invented words, orange old SVG style, cyberpunk neon, and dense tiny paragraphs.
 ```
 
-## 3. Chrome Web Store Promo
-
-目标：Chrome Web Store / Edge Add-ons 宣传图。
-
-画幅：1280x800
-
-构图：三个清晰步骤：pick image、analyze through user-configured endpoint、copy prompt。
-
-风格：产品文档级、清晰、深色 UI、暖橙强调。
-
-必须出现：浏览器扩展面板、三步流程、少量大字。
-
-避免：假 Logo、重渐变、科幻风、拥挤布局。
-
-最终提示词：
+## Prompt 2: Local-First Privacy
 
 ```text
-Create a clean promotional image for a Chrome extension that converts selected images into structured prompts. Show three steps visually: pick image, analyze locally through user-configured endpoint, copy prompt. Use a refined dark UI style with warm orange accent, realistic browser extension panel, soft shadows, crisp spacing, and professional product documentation look. Keep text minimal and large. Avoid fake logos, avoid heavy gradients, avoid sci-fi, avoid clutter.
-```
+Create a polished local-first privacy boundary visual for the Chrome extension "Zhijuan Prompt Card". Use the real plugin UI screenshots for product truth and curated old ads as visual quality reference.
 
-## 4. Product Mockup
+Composition: clean trust diagram with three visual zones: Extension, Your API, Local History. Show a selected image flowing from the extension to the user's configured vision endpoint and prompt output returning, while thumbnails/history remain local. Use UI-like panels and arrows. Dark frosted-glass software UI, matte graphite background, restrained mint-green accents.
 
-目标：真实截图不足时使用的产品概念图。
+Text must be rendered directly by ImageGen. Use only these exact visible bilingual strings:
+"Local First / 本地优先"
+"BYOK privacy boundary / BYOK 隐私边界"
+"Extension / 扩展"
+"Upload, right-click, crop / 上传、右键、框选"
+"Your API / 你的 API"
+"Only your endpoint / 仅你的端点"
+"Local History / 本地历史"
+"Thumbnails stay local / 缩略图留在本机"
+"No login / 无登录"
+"No credits / 无 credits"
+"No telemetry / 无遥测"
+"No analytics / 无 analytics"
 
-画幅：16:10
+Product truth: the extension is local-first but not offline-only. Selected images are sent only to the endpoint configured by the user. API keys, prompt history, and visual thumbnails are stored locally in chrome.storage.local. The extension does not bundle a Zhijuan cloud service by default.
 
-构图：浮动面板、选图预览卡、视觉历史 rail。
-
-风格：逼近真实桌面浏览器截图，但不要使用真实 Apple 或 Chrome 品牌。
-
-必须出现：EN、中文、JSON、Negative tabs；recreation prompt 区域；history rail。
-
-避免：小字可读性问题、真实品牌 Logo、夸张 AI 光效。
-
-最终提示词：
-
-```text
-Create a realistic product mockup of a browser extension floating panel for an image-to-prompt workflow. The panel contains tabs for EN, 中文, JSON, Negative, and a large recreation prompt section. Beside it is a selected image preview card and a small visual history rail. Dark interface, orange accent, clean spacing, realistic desktop browser screenshot feeling, but no actual Apple or Chrome branding. The UI text should be mostly abstract blocks, not tiny readable text. Professional open-source developer tool aesthetic.
-```
-
-## 5. Onboarding Illustration
-
-目标：说明 BYOK / BridgeDeck 配置。
-
-画幅：16:9
-
-构图：browser extension、local storage、user-configured vision API endpoint、optional BridgeDeck adapter、generated prompt output。
-
-风格：技术文档插图，深色背景，细连接线。
-
-必须出现：本地边界、用户配置端点、可选 BridgeDeck adapter、prompt output。
-
-避免：品牌 Logo、拥挤、小字、过度装饰。
-
-最终提示词：
-
-```text
-Create a minimal technical illustration explaining a BYOK local-first workflow: browser extension, local storage, user-configured vision API endpoint, optional local BridgeDeck adapter, generated prompt output. Use clean vector-like software documentation style, dark background, warm orange highlights, thin connector lines, simple abstract icons. No brand logos, no clutter, no complex small text.
+Avoid fake URLs, account paths, API keys, model values, license text, official platform logos, extra invented words, "works offline" claim, "all local" claim, orange old SVG style, cyberpunk neon, and dense tiny paragraphs.
 ```

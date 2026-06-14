@@ -1,32 +1,33 @@
 {
-  "chromeForTesting": "Google Chrome for Testing 149.0.7827.22",
+  "generatedAt": "2026-06-14T16:30:03.170Z",
+  "source": "tmp/browser-tests/pw-e2e-summary-1781454019377.json",
+  "browser": "playwright-chromium-temp-profile",
   "extensionLoaded": true,
   "extension": {
-    "id": "gefcchlapiplefkdmneeddbighkjckke",
+    "id": "mnkihngjeimhdiojbcmajilodephfcca",
     "location": "UNPACKED",
     "manifestErrors": [],
     "name": "Zhijuan Prompt Card",
     "state": "ENABLED",
-    "version": "0.1.0"
+    "version": "0.2.0",
+    "versionName": "0.2.0 Visual History MVP"
   },
   "contentInjected": true,
-  "popupHasDefaultBridgeDeck": true,
+  "optionsSaveAndTestOk": true,
   "imageAnalysisOk": true,
-  "panelShowsResult": true,
-  "copyNotice": "Prompt copied",
-  "openedGemini": true,
-  "historyAfterImage": 1,
-  "selectionAnalysisOk": true,
-  "selectionHistoryTitle": "One abstract geometric icon composed of a centered dark square panel, one orange horizontal rec...",
-  "selectionPanelShowsResult": true,
-  "selectionOverlay": {
-    "beforeDrag": {
-      "x": 0,
-      "y": 0,
-      "width": 1200,
-      "height": 832
-    },
-    "afterDragRemoved": true
+  "localFileAnalysisOk": true,
+  "captureRegionAnalysisOk": true,
+  "copyPromptOk": true,
+  "copyJsonOk": true,
+  "historyViewOk": true,
+  "languageToggleOk": true,
+  "requestCount": 4,
+  "captureTargetPreview": {
+    "width": 720,
+    "height": 340,
+    "blackRatio": 0,
+    "brightRatio": 0.9396198830409357,
+    "averageLuma": 158.0267722514688
   },
   "capturePath": "Real chrome.tabs.captureVisibleTab capture only. Denied capture surfaces as an error instead of using DOM-render fallback."
 }

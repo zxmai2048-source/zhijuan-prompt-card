@@ -3,7 +3,7 @@
 ## Source Gate
 
 - `zhijuan-super-image-gen`: pass.
-- Accepted run: `/Users/jinjungao/work/zhijuan-super-image-gen/imageops/runs/20260523-180424-black-glass-clean-ui-board`
+- Accepted image-planning run: `20260523-180424-black-glass-clean-ui-board`
 - First run was rejected because it returned `NEEDS_REFERENCES`.
 - Second referenced run was rejected because it drifted into `cinematic_portrait`.
 - Final run was accepted because `direction_family` is `ui_marketing_mockup` and feasibility is `PROCEED`.

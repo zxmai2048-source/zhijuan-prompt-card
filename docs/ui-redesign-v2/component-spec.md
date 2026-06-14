@@ -1,6 +1,6 @@
 # Zhijuan Prompt Card V2 Component Spec
 
-Source run: `/Users/jinjungao/work/zhijuan-super-image-gen/imageops/runs/20260523-180424-black-glass-clean-ui-board`
+Source image-planning run: `20260523-180424-black-glass-clean-ui-board`
 
 Design direction: black frosted glass, matte charcoal, one muted lake-green accent, compact daily-use Chrome extension UI. Keep function, replace old stacked-card structure.
 

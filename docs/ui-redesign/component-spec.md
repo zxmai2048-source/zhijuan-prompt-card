@@ -1,8 +1,8 @@
 # Zhijuan Prompt Card UI Redesign Spec
 
 Source workflow:
-- Image planning run: `/Users/jinjungao/work/zhijuan-super-image-gen/imageops/runs/20260523-175016-zhijuan-prompt-card-ui-redesign`
-- Implementation target: real Chrome extension source under `/Users/jinjungao/work/zhijuan prompt card/src`
+- Image planning run: `20260523-175016-zhijuan-prompt-card-ui-redesign`
+- Implementation target: real Chrome extension source under `src/`
 
 ## Product Rule
 
@@ -76,4 +76,3 @@ The popup is a daily-use command surface, not a settings form. API keys, model U
 - Use glass only where it clarifies hierarchy: popup shell, floating panel, selected-source receipt.
 - Text must fit in 360px popup without horizontal scroll.
 - Button labels must describe the action and destination, not generic feature names.
-
