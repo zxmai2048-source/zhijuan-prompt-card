@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520" role="img" aria-labelledby="title desc">
+  <title id="title">Privacy boundary</title>
+  <desc id="desc">Local browser storage boundary and network request boundary.</desc>
+  <rect width="1400" height="520" fill="#0D0E12"/>
+  <text x="56" y="78" fill="#F6F3EE" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700">Privacy Boundary</text>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif">
+    <rect x="56" y="122" width="578" height="300" rx="8" fill="#14161C" stroke="#FF6A1A" stroke-width="2"/>
+    <text x="92" y="174" fill="#F6F3EE" font-size="26" font-weight="650">Browser local boundary</text>
+    <text x="92" y="222" fill="#8E95A3" font-size="20">- chrome.storage.local</text>
+    <text x="92" y="260" fill="#8E95A3" font-size="20">- API key</text>
+    <text x="92" y="298" fill="#8E95A3" font-size="20">- local history</text>
+    <text x="92" y="336" fill="#8E95A3" font-size="20">- thumbnails</text>
+    <rect x="766" y="122" width="578" height="300" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="802" y="174" fill="#F6F3EE" font-size="26" font-weight="650">Network</text>
+    <text x="802" y="222" fill="#8E95A3" font-size="20">Selected image -> user endpoint only</text>
+    <text x="802" y="278" fill="#F6F3EE" font-size="20">No Zhijuan cloud by default</text>
+    <text x="802" y="316" fill="#F6F3EE" font-size="20">No telemetry</text>
+    <path d="M654 272 H742" stroke="#FF6A1A" stroke-width="3"/>
+    <path d="M742 272 l-14 -9 v18 z" fill="#FF6A1A"/>
+  </g>
+</svg>

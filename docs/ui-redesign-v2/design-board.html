@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zhijuan Prompt Card V2 UI Board</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080a0d;
+        --glass: rgba(18, 21, 24, 0.64);
+        --glass-strong: rgba(22, 26, 30, 0.82);
+        --line: rgba(255, 255, 255, 0.14);
+        --line-hot: rgba(130, 184, 155, 0.46);
+        --text: #f2f5f1;
+        --muted: #9ea8a2;
+        --soft: #d2ded5;
+        --lake: #82b89b;
+        --moss: #566f60;
+        --amber: #b79a70;
+        --danger: #d98585;
+        --shadow: rgba(0, 0, 0, 0.5);
+        font-family: "Geist", "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% 8%, rgba(130, 184, 155, 0.16), transparent 28%),
+          radial-gradient(circle at 88% 16%, rgba(183, 154, 112, 0.1), transparent 30%),
+          linear-gradient(145deg, #0d1112 0%, #060709 58%, #0b0d0f 100%);
+        color: var(--text);
+      }
+
+      body::before {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 32px 32px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 84%);
+        content: "";
+      }
+
+      .board {
+        width: 1440px;
+        min-height: 1020px;
+        margin: 0 auto;
+        padding: 46px;
+      }
+
+      .topline {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 26px;
+      }
+
+      .topline p,
+      .topline h1 {
+        margin: 0;
+      }
+
+      .topline p {
+        color: var(--lake);
+        font-size: 14px;
+        font-weight: 850;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .topline h1 {
+        margin-top: 8px;
+        font-size: 42px;
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      .principles {
+        display: grid;
+        gap: 8px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.045);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      .principles span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 390px minmax(0, 1fr);
+        gap: 22px;
+      }
+
+      .glass {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035) 36%, rgba(130, 184, 155, 0.045)),
+          var(--glass);
+        box-shadow:
+          0 28px 90px var(--shadow),
+          inset 0 1px 0 rgba(255, 255, 255, 0.14),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(24px) saturate(145%);
+      }
+
+      .glass::after {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        background:
+          linear-gradient(120deg, rgba(255, 255, 255, 0.16), transparent 22%),
+          radial-gradient(circle at 88% 0%, rgba(130, 184, 155, 0.13), transparent 32%);
+        content: "";
+        opacity: 0.72;
+      }
+
+      .popup {
+        min-height: 560px;
+        padding: 18px;
+        border-radius: 34px;
+      }
+
+      .popup > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .microbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .brand span,
+      .lens-head span,
+      .zoom-title span {
+        display: block;
+        color: var(--lake);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .brand strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 18px;
+      }
+
+      .lang {
+        display: inline-grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.055);
+      }
+
+      .lang i {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 24px;
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 850;
+      }
+
+      .lang i:first-child {
+        background: var(--lake);
+        color: #07100c;
+      }
+
+      .puck {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 245px;
+        height: 245px;
+        margin: 16px auto 20px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 50% 50%, rgba(130, 184, 155, 0.22), transparent 39%),
+          radial-gradient(circle, rgba(255, 255, 255, 0.075) 0 40%, transparent 41%),
+          rgba(255, 255, 255, 0.045);
+        box-shadow:
+          0 26px 80px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          inset 0 -22px 52px rgba(0, 0, 0, 0.22);
+      }
+
+      .puck::before,
+      .puck::after {
+        position: absolute;
+        inset: 20px;
+        border: 1px solid rgba(130, 184, 155, 0.24);
+        border-radius: 50%;
+        content: "";
+      }
+
+      .puck::after {
+        inset: 48px;
+        border-color: rgba(255, 255, 255, 0.13);
+      }
+
+      .puck-content {
+        position: relative;
+        z-index: 1;
+        width: 138px;
+        text-align: center;
+      }
+
+      .puck-content b {
+        display: block;
+        font-size: 28px;
+        letter-spacing: 0;
+      }
+
+      .puck-content small {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .orbit-action {
+        position: absolute;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+        min-width: 94px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        background: rgba(8, 10, 13, 0.72);
+        color: var(--text);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .orbit-action.primary {
+        right: -18px;
+        bottom: 54px;
+        border-color: var(--line-hot);
+        background: linear-gradient(145deg, rgba(130, 184, 155, 0.92), rgba(102, 132, 113, 0.86));
+        color: #07100c;
+      }
+
+      .orbit-action.secondary {
+        left: -20px;
+        top: 66px;
+      }
+
+      .signal-strip {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .signal-strip div,
+      .mini-dock,
+      .flow-chip {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.045);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+      }
+
+      .signal-strip div {
+        min-height: 62px;
+        padding: 11px;
+        border-radius: 18px;
+      }
+
+      .signal-strip span,
+      .flow-chip span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .signal-strip strong {
+        display: block;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+        font-size: 14px;
+      }
+
+      .mini-dock {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+        padding: 8px;
+        border-radius: 20px;
+      }
+
+      .mini-dock button {
+        min-height: 36px;
+        border: 0;
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--soft);
+        font: 850 12px/1 inherit;
+      }
+
+      .browser-stage {
+        position: relative;
+        min-height: 770px;
+        border-radius: 34px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015)),
+          rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+
+      .site-chrome {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 52px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .urlbar {
+        width: 430px;
+        height: 30px;
+        margin-left: 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.22);
+      }
+
+      .page-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        padding: 28px;
+      }
+
+      .mock-copy {
+        height: 270px;
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+          rgba(255, 255, 255, 0.025);
+        border: 1px solid var(--line);
+      }
+
+      .image-card {
+        position: relative;
+        height: 300px;
+        border: 1px solid rgba(130, 184, 155, 0.32);
+        border-radius: 30px;
+        background:
+          radial-gradient(circle at 42% 30%, rgba(130, 184, 155, 0.32), transparent 18%),
+          radial-gradient(circle at 58% 48%, rgba(183, 154, 112, 0.22), transparent 24%),
+          linear-gradient(145deg, #1a211d, #0a0c0d);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+      }
+
+      .pick-frame {
+        position: absolute;
+        inset: 18px;
+        border: 2px solid var(--lake);
+        border-radius: 25px;
+        box-shadow:
+          0 0 0 9999px rgba(0, 0, 0, 0.33),
+          0 0 0 9px rgba(130, 184, 155, 0.09),
+          inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      }
+
+      .pick-label {
+        position: absolute;
+        left: 50%;
+        top: 76px;
+        translate: -50% 0;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(9, 11, 13, 0.72);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.36);
+        backdrop-filter: blur(22px) saturate(150%);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .lens {
+        position: absolute;
+        right: 28px;
+        top: 86px;
+        z-index: 2;
+        width: 454px;
+        min-height: 592px;
+        padding: 10px;
+        border-radius: 32px;
+      }
+
+      .lens > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .lens-head {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 58px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .drag-dot {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid var(--line-hot);
+        background:
+          radial-gradient(circle, rgba(130, 184, 155, 0.28) 0 28%, transparent 29%),
+          rgba(255, 255, 255, 0.04);
+      }
+
+      .lens-head h2 {
+        margin: 5px 0 0;
+        font-size: 17px;
+      }
+
+      .head-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .head-actions i {
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.055);
+      }
+
+      .lens-body {
+        display: grid;
+        grid-template-columns: 62px minmax(0, 1fr);
+        gap: 10px;
+        padding-top: 10px;
+      }
+
+      .rail {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+      }
+
+      .rail b {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.045);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .rail b.active {
+        border-color: var(--line-hot);
+        background: rgba(130, 184, 155, 0.14);
+        color: var(--text);
+      }
+
+      .workspace {
+        display: grid;
+        gap: 9px;
+      }
+
+      .source-strip {
+        display: grid;
+        grid-template-columns: 66px minmax(0, 1fr) 74px;
+        gap: 10px;
+        align-items: center;
+        padding: 9px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .thumb {
+        width: 66px;
+        height: 52px;
+        border-radius: 16px;
+        border: 1px solid rgba(130, 184, 155, 0.34);
+        background:
+          radial-gradient(circle at 42% 35%, rgba(130, 184, 155, 0.52), transparent 24%),
+          linear-gradient(145deg, #27302b, #0b0d0e);
+      }
+
+      .source-strip span,
+      .prompt-output span,
+      .quality-receipt span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .source-strip strong {
+        display: block;
+        margin-top: 5px;
+        overflow: hidden;
+        font-size: 13px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .quality-ring {
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: conic-gradient(var(--lake) 0 82%, rgba(255, 255, 255, 0.11) 82% 100%);
+        color: #07100c;
+        font-weight: 900;
+      }
+
+      .quality-ring::before {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: var(--soft);
+        content: "82";
+      }
+
+      .prompt-output {
+        min-height: 238px;
+        padding: 14px;
+        border: 1px solid var(--line-hot);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(130, 184, 155, 0.12), rgba(255, 255, 255, 0.035)),
+          rgba(255, 255, 255, 0.045);
+      }
+
+      .prompt-output p {
+        margin: 10px 0 0;
+        color: #e7eee8;
+        font: 13px/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .prompt-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+
+      .prompt-actions button {
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.055);
+        color: var(--text);
+        font-weight: 850;
+      }
+
+      .prompt-actions button:first-child {
+        border-color: var(--line-hot);
+        background: rgba(130, 184, 155, 0.18);
+      }
+
+      .min-capsule {
+        position: absolute;
+        right: 42px;
+        bottom: 34px;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        width: 282px;
+        min-height: 60px;
+        padding: 9px 11px;
+        border-radius: 999px;
+      }
+
+      .min-capsule strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .min-capsule span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .status-dot {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, var(--lake) 0 34%, transparent 36%),
+          rgba(130, 184, 155, 0.16);
+        border: 1px solid var(--line-hot);
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .flow-chip {
+        min-height: 90px;
+        padding: 13px;
+        border-radius: 22px;
+      }
+
+      .flow-chip strong {
+        display: block;
+        margin-top: 9px;
+        font-size: 14px;
+      }
+
+      .flow-chip p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <section class="topline">
+        <div>
+          <p>Zhijuan Prompt Card V2</p>
+          <h1>黑色磨砂玻璃工作台：选图、识别、提示词输出一眼可见</h1>
+        </div>
+        <div class="principles">
+          <span>Design source: zhijuan-super-image-gen / clean UI mockup</span>
+          <span>Interaction: command puck + result lens + minimized capsule</span>
+          <span>Rule: no old stacked cards, no cyan-orange dominant gradient</span>
+        </div>
+      </section>
+
+      <section class="layout">
+        <aside class="popup glass">
+          <div class="microbar">
+            <div class="brand">
+              <span>Daily launcher</span>
+              <strong>Zhijuan Prompt</strong>
+            </div>
+            <div class="lang"><i>中</i><i>EN</i></div>
+          </div>
+
+          <div class="puck">
+            <div class="orbit-action secondary">框选</div>
+            <div class="orbit-action primary">选图识别</div>
+            <div class="puck-content">
+              <b>图片源</b>
+              <small>点击网页图片后，缩略图进入结果镜头</small>
+            </div>
+          </div>
+
+          <div class="signal-strip">
+            <div>
+              <span>本地 API</span>
+              <strong>127.0.0.1:8876</strong>
+            </div>
+            <div>
+              <span>状态</span>
+              <strong>准备就绪</strong>
+            </div>
+          </div>
+
+          <div class="mini-dock">
+            <button>历史</button>
+            <button>设置</button>
+            <button>测试</button>
+          </div>
+        </aside>
+
+        <section class="browser-stage">
+          <div class="site-chrome">
+            <i class="dot"></i>
+            <i class="dot"></i>
+            <i class="dot"></i>
+            <i class="urlbar"></i>
+          </div>
+          <div class="page-grid">
+            <div class="mock-copy"></div>
+            <div class="image-card">
+              <div class="pick-frame"></div>
+            </div>
+          </div>
+          <div class="pick-label">当前图片 · 点击识别</div>
+
+          <section class="lens glass">
+            <header class="lens-head">
+              <i class="drag-dot"></i>
+              <div>
+                <span>Result lens</span>
+                <h2>提示词输出</h2>
+              </div>
+              <div class="head-actions"><i></i><i></i><i></i></div>
+            </header>
+            <div class="lens-body">
+              <nav class="rail">
+                <b class="active">源</b>
+                <b>读</b>
+                <b>词</b>
+                <b>发</b>
+              </nav>
+              <div class="workspace">
+                <div class="source-strip">
+                  <i class="thumb"></i>
+                  <div>
+                    <span>已选图片</span>
+                    <strong>网页图片 320 x 240</strong>
+                  </div>
+                  <i class="quality-ring"></i>
+                </div>
+                <div class="prompt-output">
+                  <span>生成提示词</span>
+                  <p>Black frosted glass Chrome extension UI, compact command puck, selected image preview, prompt output lens, muted lake-green accent, tactile inner borders, calm shell-like geometry...</p>
+                </div>
+                <div class="prompt-actions">
+                  <button>复制提示词</button>
+                  <button>复制 JSON</button>
+                  <button>打开生成器</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="min-capsule glass">
+            <i class="status-dot"></i>
+            <div>
+              <strong>已缩小</strong>
+              <span>点击展开结果镜头</span>
+            </div>
+            <span>82</span>
+          </section>
+        </section>
+      </section>
+
+      <section class="flow">
+        <article class="flow-chip">
+          <span>01</span>
+          <strong>打开弹窗</strong>
+          <p>只看到最常用的选图/框选入口。</p>
+        </article>
+        <article class="flow-chip">
+          <span>02</span>
+          <strong>选择图片</strong>
+          <p>页面出现湖绿色框和选中反馈。</p>
+        </article>
+        <article class="flow-chip">
+          <span>03</span>
+          <strong>结果镜头</strong>
+          <p>缩略图、质量、提示词同屏。</p>
+        </article>
+        <article class="flow-chip">
+          <span>04</span>
+          <strong>缩小状态</strong>
+          <p>变成胶囊，不挡网页内容。</p>
+        </article>
+        <article class="flow-chip">
+          <span>05</span>
+          <strong>交付生成器</strong>
+          <p>复制或打开 ChatGPT/Codex 等入口。</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

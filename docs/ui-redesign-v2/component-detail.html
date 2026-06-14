@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zhijuan Prompt Card V2 Component Detail</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080a0d;
+        --panel: rgba(18, 21, 24, 0.7);
+        --line: rgba(255, 255, 255, 0.14);
+        --text: #f2f5f1;
+        --muted: #9ea8a2;
+        --lake: #82b89b;
+        --amber: #b79a70;
+        --danger: #d98585;
+        font-family: "Geist", "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 15% 8%, rgba(130, 184, 155, 0.14), transparent 26%),
+          linear-gradient(145deg, #0d1112, #060709 58%, #0b0d0f);
+        color: var(--text);
+      }
+
+      .board {
+        width: 1440px;
+        margin: 0 auto;
+        padding: 44px;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 24px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 38px;
+        letter-spacing: 0;
+      }
+
+      header p {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .detail {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 20px;
+        background:
+          linear-gradient(155deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035) 38%, rgba(130, 184, 155, 0.045)),
+          var(--panel);
+        box-shadow: 0 26px 90px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.13);
+        backdrop-filter: blur(24px) saturate(145%);
+      }
+
+      .detail::after {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(120deg, rgba(255, 255, 255, 0.15), transparent 22%),
+          radial-gradient(circle at 92% 2%, rgba(130, 184, 155, 0.13), transparent 31%);
+        content: "";
+      }
+
+      .detail > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .kicker {
+        color: var(--lake);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .detail h2 {
+        margin-top: 6px;
+        font-size: 24px;
+        letter-spacing: 0;
+      }
+
+      .detail p {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .states {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .states span {
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.045);
+        color: #dbe6dc;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .puck-demo {
+        position: relative;
+        width: 300px;
+        height: 300px;
+        margin: 24px auto 4px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        background:
+          repeating-radial-gradient(circle, transparent 0 34px, rgba(130, 184, 155, 0.12) 35px 36px),
+          radial-gradient(circle, rgba(130, 184, 155, 0.22), rgba(255, 255, 255, 0.045) 45%, transparent 46%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 26px 90px rgba(0, 0, 0, 0.44);
+      }
+
+      .puck-demo b {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        translate: -50% -50%;
+        width: 124px;
+        text-align: center;
+        font-size: 28px;
+      }
+
+      .orb {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        min-width: 106px;
+        height: 46px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(8, 10, 13, 0.74);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 48px rgba(0, 0, 0, 0.32);
+        font-weight: 900;
+      }
+
+      .orb.primary {
+        right: -16px;
+        bottom: 70px;
+        border-color: rgba(130, 184, 155, 0.5);
+        background: rgba(130, 184, 155, 0.9);
+        color: #07100c;
+      }
+
+      .orb.secondary {
+        left: -18px;
+        top: 82px;
+      }
+
+      .overlay-demo {
+        height: 260px;
+        margin-top: 18px;
+        border: 1px solid rgba(130, 184, 155, 0.34);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at 43% 38%, rgba(130, 184, 155, 0.32), transparent 22%),
+          linear-gradient(145deg, #1b221e, #090b0c);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.0);
+      }
+
+      .overlay-frame {
+        position: absolute;
+        left: 38px;
+        right: 38px;
+        bottom: 42px;
+        height: 214px;
+        border: 2px solid var(--lake);
+        border-radius: 24px;
+        box-shadow: 0 0 0 8px rgba(130, 184, 155, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      }
+
+      .stamp {
+        position: absolute;
+        left: 50%;
+        bottom: 132px;
+        translate: -50% 0;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(130, 184, 155, 0.92);
+        color: #07100c;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .lens-demo {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .rail {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+      }
+
+      .rail i {
+        display: grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.045);
+        color: var(--muted);
+        font-style: normal;
+        font-weight: 900;
+      }
+
+      .rail i:first-child {
+        border-color: rgba(130, 184, 155, 0.46);
+        background: rgba(130, 184, 155, 0.13);
+        color: var(--text);
+      }
+
+      .lens-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .source,
+      .prompt,
+      .receipt,
+      .drawer-row {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.045);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      .source {
+        display: grid;
+        grid-template-columns: 76px 1fr 66px;
+        gap: 10px;
+        align-items: center;
+        min-height: 78px;
+        padding: 10px;
+      }
+
+      .thumb {
+        height: 58px;
+        border-radius: 17px;
+        border: 1px solid rgba(130, 184, 155, 0.34);
+        background: radial-gradient(circle at 40% 38%, rgba(130, 184, 155, 0.54), transparent 26%), #101412;
+      }
+
+      .source strong,
+      .prompt strong,
+      .receipt strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .source span,
+      .prompt span,
+      .receipt span {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .score {
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: conic-gradient(var(--lake) 0 82%, rgba(255, 255, 255, 0.11) 82% 100%);
+        color: #07100c;
+        font-weight: 900;
+      }
+
+      .score::before {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: #d2ded5;
+        content: "82";
+      }
+
+      .prompt {
+        min-height: 172px;
+        padding: 14px;
+        border-color: rgba(130, 184, 155, 0.42);
+      }
+
+      .prompt code {
+        display: block;
+        margin-top: 10px;
+        color: #e7eee8;
+        font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .capsules {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .capsule {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        min-height: 60px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .capsule i {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, var(--lake) 0 32%, transparent 34%),
+          rgba(130, 184, 155, 0.16);
+        border: 1px solid rgba(130, 184, 155, 0.44);
+      }
+
+      .capsule strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .capsule span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .drawer {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .drawer-nav {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+      }
+
+      .drawer-nav b {
+        display: block;
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(130, 184, 155, 0.14);
+        color: var(--text);
+        font-size: 12px;
+      }
+
+      .drawer-nav span {
+        display: block;
+        padding: 12px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.045);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .drawer-fields {
+        display: grid;
+        gap: 10px;
+      }
+
+      .drawer-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 12px;
+        align-items: center;
+        min-height: 54px;
+        padding: 10px 12px;
+      }
+
+      .receipt {
+        display: grid;
+        grid-template-columns: 64px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 82px;
+        padding: 12px;
+        margin-top: 18px;
+      }
+
+      .receipt .score {
+        width: 54px;
+        height: 54px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <header>
+        <div>
+          <div class="kicker">Component zoom board</div>
+          <h1>拆分放大：动态选择、展开缩小、提示词位置</h1>
+          <p>每个组件都对应扩展源码里的一个实际状态。</p>
+        </div>
+      </header>
+
+      <section class="grid">
+        <div class="stack">
+          <article class="detail">
+            <div class="kicker">Popup command puck</div>
+            <h2>弹窗不再是卡片堆叠</h2>
+            <p>中心是图片源意图，两个动作围绕圆形轨道；历史、设置、测试进入底部轻 dock。</p>
+            <div class="puck-demo">
+              <span class="orb secondary">框选</span>
+              <span class="orb primary">选图识别</span>
+              <b>图片源</b>
+            </div>
+            <div class="states">
+              <span>hover: 轻微上浮</span>
+              <span>pressed: 内陷 1px</span>
+              <span>saved: 状态条更新</span>
+            </div>
+          </article>
+
+          <article class="detail">
+            <div class="kicker">Picker overlay</div>
+            <h2>选中反馈必须在图上</h2>
+            <p>悬停框显示尺寸，点击后出现湖绿色选中印章，右侧结果镜头进入 loading。</p>
+            <div class="overlay-demo"></div>
+            <div class="overlay-frame"></div>
+            <div class="stamp">已选择 · 生成中</div>
+            <div class="states">
+              <span>hover frame</span>
+              <span>selected stamp</span>
+              <span>Esc cancel</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="detail">
+            <div class="kicker">Result lens</div>
+            <h2>左轨流程 + 源图 + 提示词输出</h2>
+            <p>用户不需要猜：缩略图在顶部，质量在右侧，提示词输出是最大区域。</p>
+            <div class="lens-demo">
+              <nav class="rail"><i>源</i><i>读</i><i>词</i><i>发</i></nav>
+              <div class="lens-stack">
+                <div class="source">
+                  <i class="thumb"></i>
+                  <div><strong>已选图片</strong><span>网页图片 320 x 240</span></div>
+                  <i class="score"></i>
+                </div>
+                <div class="prompt">
+                  <strong>生成提示词</strong>
+                  <span>默认打开中文/英文提示词，复制入口紧贴输出区。</span>
+                  <code>Black frosted glass Chrome extension UI, selected image preview, prompt output lens...</code>
+                </div>
+              </div>
+            </div>
+            <div class="capsules">
+              <div class="capsule"><i></i><div><strong>展开状态</strong><span>完整结果镜头</span></div></div>
+              <div class="capsule"><i></i><div><strong>缩小状态</strong><span>胶囊，不挡网页</span></div></div>
+            </div>
+          </article>
+
+          <article class="detail">
+            <div class="kicker">Settings drawer</div>
+            <h2>设置是抽屉式工作台</h2>
+            <p>日常弹窗不暴露自定义 API 表单；API、生成器、隐私边界集中在设置页。</p>
+            <div class="drawer">
+              <nav class="drawer-nav">
+                <b>连接</b>
+                <span>生成器</span>
+                <span>界面</span>
+                <span>隐私</span>
+              </nav>
+              <div class="drawer-fields">
+                <div class="drawer-row"><strong>Base URL</strong><span>127.0.0.1:8876</span></div>
+                <div class="drawer-row"><strong>API Key</strong><span>保存在本地 storage</span></div>
+                <div class="drawer-row"><strong>默认生成器</strong><span>ChatGPT / Codex / Jimeng</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="detail">
+            <div class="kicker">History receipt</div>
+            <h2>历史记录像质检回执</h2>
+            <p>记录不只是列表；展示来源、质量、收藏、复制状态，和结果镜头一致。</p>
+            <div class="receipt">
+              <i class="score"></i>
+              <div><strong>网页图片 · 黑色磨砂界面</strong><span>中文提示词 · 已保存 · 本地历史</span></div>
+              <span>复制</span>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

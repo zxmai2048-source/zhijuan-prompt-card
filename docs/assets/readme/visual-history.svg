@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
+  <title id="title">Visual History MVP</title>
+  <desc id="desc">Visual history thumbnails, quick history rail, popup grid, and local storage budget.</desc>
+  <rect width="1400" height="560" fill="#0D0E12"/>
+  <text x="56" y="78" fill="#F6F3EE" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700">v0.2.0 Visual History MVP</text>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif">
+    <rect x="56" y="126" width="372" height="328" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="88" y="178" fill="#F6F3EE" font-size="24" font-weight="650">History thumbnails</text>
+    <rect x="88" y="216" width="126" height="94" rx="8" fill="#FF6A1A"/>
+    <rect x="230" y="216" width="126" height="94" rx="8" fill="#3D4350"/>
+    <rect x="88" y="326" width="126" height="94" rx="8" fill="#F6F3EE"/>
+    <rect x="230" y="326" width="126" height="94" rx="8" fill="#8E95A3"/>
+    <rect x="514" y="126" width="372" height="328" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="546" y="178" fill="#F6F3EE" font-size="24" font-weight="650">Quick history rail</text>
+    <rect x="546" y="222" width="78" height="156" rx="8" fill="#FF6A1A"/>
+    <rect x="640" y="222" width="78" height="156" rx="8" fill="#3D4350"/>
+    <rect x="734" y="222" width="78" height="156" rx="8" fill="#F6F3EE"/>
+    <rect x="546" y="402" width="190" height="14" rx="7" fill="#8E95A3"/>
+    <rect x="972" y="126" width="372" height="328" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="1004" y="178" fill="#F6F3EE" font-size="24" font-weight="650">Local storage budget</text>
+    <text x="1004" y="228" fill="#8E95A3" font-size="19">chrome.storage.local</text>
+    <text x="1004" y="270" fill="#8E95A3" font-size="19">thumbnail size guard</text>
+    <text x="1004" y="312" fill="#8E95A3" font-size="19">broken image fallback</text>
+    <text x="1004" y="354" fill="#8E95A3" font-size="19">no separate image folder</text>
+  </g>
+</svg>

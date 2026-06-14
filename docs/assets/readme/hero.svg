@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Zhijuan Prompt Card hero concept preview</title>
+  <desc id="desc">Dark browser workspace with selected image and floating prompt panel.</desc>
+  <rect width="1600" height="900" fill="#0D0E12"/>
+  <rect x="96" y="78" width="1408" height="744" rx="8" fill="#14161C" stroke="#2A2E38"/>
+  <rect x="96" y="78" width="1408" height="56" rx="8" fill="#191C23"/>
+  <circle cx="132" cy="106" r="7" fill="#FF6A1A"/>
+  <circle cx="156" cy="106" r="7" fill="#8E95A3"/>
+  <circle cx="180" cy="106" r="7" fill="#3D4350"/>
+  <rect x="230" y="95" width="560" height="22" rx="8" fill="#0D0E12" stroke="#2A2E38"/>
+  <text x="116" y="194" fill="#F6F3EE" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="44" font-weight="700">Zhijuan Prompt Card</text>
+  <text x="116" y="236" fill="#8E95A3" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="24">Local-first image to structured prompt</text>
+  <rect x="116" y="296" width="708" height="426" rx="8" fill="#0F1117" stroke="#2A2E38"/>
+  <rect x="148" y="328" width="644" height="362" rx="8" fill="#191C23"/>
+  <circle cx="470" cy="498" r="142" fill="#FF6A1A"/>
+  <rect x="148" y="562" width="644" height="128" fill="#0D0E12" opacity="0.88"/>
+  <path d="M180 610 C270 520 353 632 430 576 C522 510 594 596 688 538 L760 690 L180 690 Z" fill="#F6F3EE" opacity="0.92"/>
+  <rect x="136" y="316" width="676" height="394" rx="8" fill="none" stroke="#FF6A1A" stroke-width="3"/>
+  <rect x="896" y="196" width="488" height="586" rx="8" fill="#11141B" stroke="#2A2E38"/>
+  <rect x="928" y="228" width="220" height="26" rx="8" fill="#FF6A1A"/>
+  <rect x="928" y="280" width="392" height="74" rx="8" fill="#191C23" stroke="#2A2E38"/>
+  <rect x="952" y="306" width="280" height="14" rx="7" fill="#F6F3EE" opacity="0.9"/>
+  <rect x="952" y="330" width="320" height="10" rx="5" fill="#8E95A3" opacity="0.7"/>
+  <rect x="928" y="382" width="392" height="74" rx="8" fill="#191C23" stroke="#2A2E38"/>
+  <rect x="952" y="408" width="248" height="14" rx="7" fill="#F6F3EE" opacity="0.9"/>
+  <rect x="952" y="432" width="336" height="10" rx="5" fill="#8E95A3" opacity="0.7"/>
+  <rect x="928" y="484" width="392" height="154" rx="8" fill="#191C23" stroke="#2A2E38"/>
+  <rect x="952" y="512" width="180" height="14" rx="7" fill="#F6F3EE" opacity="0.9"/>
+  <rect x="952" y="544" width="320" height="10" rx="5" fill="#8E95A3"/>
+  <rect x="952" y="568" width="296" height="10" rx="5" fill="#8E95A3"/>
+  <rect x="952" y="592" width="338" height="10" rx="5" fill="#8E95A3"/>
+  <rect x="928" y="672" width="108" height="40" rx="8" fill="#FF6A1A"/>
+  <rect x="1052" y="672" width="132" height="40" rx="8" fill="#191C23" stroke="#3D4350"/>
+  <text x="116" y="778" fill="#8E95A3" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20">Concept preview</text>
+</svg>

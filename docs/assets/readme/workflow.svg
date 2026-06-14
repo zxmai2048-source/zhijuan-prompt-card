@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420" role="img" aria-labelledby="title desc">
+  <title id="title">Zhijuan Prompt Card workflow</title>
+  <desc id="desc">Image, page region, or local file moves through the extension to a user endpoint and structured prompt output.</desc>
+  <rect width="1400" height="420" fill="#0D0E12"/>
+  <text x="56" y="76" fill="#F6F3EE" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700">Workflow</text>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif">
+    <g transform="translate(56 132)">
+      <rect width="214" height="148" rx="8" fill="#14161C" stroke="#2A2E38"/>
+      <text x="24" y="46" fill="#F6F3EE" font-size="22" font-weight="650">Image Source</text>
+      <text x="24" y="82" fill="#8E95A3" font-size="17">Image / Page Region</text>
+      <text x="24" y="112" fill="#8E95A3" font-size="17">Local File</text>
+    </g>
+    <path d="M292 206 H378" stroke="#FF6A1A" stroke-width="3"/>
+    <path d="M378 206 l-14 -9 v18 z" fill="#FF6A1A"/>
+    <g transform="translate(404 132)">
+      <rect width="214" height="148" rx="8" fill="#14161C" stroke="#2A2E38"/>
+      <text x="24" y="46" fill="#F6F3EE" font-size="22" font-weight="650">Zhijuan</text>
+      <text x="24" y="82" fill="#8E95A3" font-size="17">Prompt Card</text>
+      <rect x="24" y="104" width="114" height="12" rx="6" fill="#FF6A1A"/>
+    </g>
+    <path d="M640 206 H726" stroke="#FF6A1A" stroke-width="3"/>
+    <path d="M726 206 l-14 -9 v18 z" fill="#FF6A1A"/>
+    <g transform="translate(752 132)">
+      <rect width="250" height="148" rx="8" fill="#14161C" stroke="#2A2E38"/>
+      <text x="24" y="46" fill="#F6F3EE" font-size="22" font-weight="650">User Endpoint</text>
+      <text x="24" y="82" fill="#8E95A3" font-size="17">OpenAI-compatible</text>
+      <text x="24" y="112" fill="#8E95A3" font-size="17">Vision API</text>
+    </g>
+    <path d="M1024 206 H1110" stroke="#FF6A1A" stroke-width="3"/>
+    <path d="M1110 206 l-14 -9 v18 z" fill="#FF6A1A"/>
+    <g transform="translate(1136 132)">
+      <rect width="214" height="148" rx="8" fill="#14161C" stroke="#2A2E38"/>
+      <text x="24" y="46" fill="#F6F3EE" font-size="22" font-weight="650">Prompt Output</text>
+      <text x="24" y="82" fill="#8E95A3" font-size="17">Copy / JSON</text>
+      <text x="24" y="112" fill="#8E95A3" font-size="17">Open Generator</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+tmp/
+release/
+promo/
+refs_tmp/
+outputs/
+.claude/
+zhijuan_codex_oss_launch_prompt.md
+*.crx
+*.pem
+.DS_Store
