@@ -1,7 +1,7 @@
 const manifest = {
   manifest_version: 3,
   name: 'Zhijuan Prompt Card',
-  description: 'Local-first image to prompt reverse prompt tool.',
+  description: 'Turn images, page regions, and local files into structured prompts using your own vision API.',
   version: '0.2.0',
   version_name: '0.2.0 Visual History MVP',
   permissions: ['contextMenus', 'storage', 'scripting', 'clipboardWrite'],

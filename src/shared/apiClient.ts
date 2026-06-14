@@ -157,7 +157,7 @@ export function isAbortError(error: unknown): boolean {
 
 export function normalizeApiErrorMessage(message: string): string {
   if (isProxyServiceUnavailable(message)) {
-    return 'BridgeDeck 代理暂时不可用（503）。已自动重试仍失败，请稍后再试；如果连续出现，检查或重启 127.0.0.1:1087 代理。';
+    return 'BridgeDeck 或上游代理暂时不可用（503）。已自动重试仍失败，请稍后再试；如果连续出现，请检查本地 BridgeDeck、上游模型服务或代理配置。';
   }
   return message;
 }

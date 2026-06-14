@@ -2,7 +2,11 @@
 
 This folder contains README-only visual assets.
 
-Generated README images are product graphics created with ImageGen for this repository. They are not screenshots. Product screenshots below are captured from the extension UI and should be used as proof of actual behavior.
+Generated README images are product graphics created with ImageGen for this repository. They are not screenshots. Product screenshots below are captured from the extension UI and kept as internal product references.
+
+Real screenshots are intentionally not embedded in the README yet. Current screenshots are kept as internal product references and should only be promoted into README when they are clean, consistent, and publication-ready.
+
+当前真实截图暂不放入 README。截图先作为内部产品参考，等画面干净、风格统一、达到发布质量后再进入 README。
 
 Draft ad references used during visual direction are not included in this repository.
 

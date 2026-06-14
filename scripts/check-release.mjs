@@ -58,7 +58,7 @@ async function walk(dir, files = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (['.git', 'node_modules', 'dist', 'tmp', 'release', 'promo', 'refs_tmp'].includes(entry.name)) continue;
+      if (['.git', 'node_modules', 'dist', 'tmp', 'release', 'promo', 'refs_tmp', 'outputs'].includes(entry.name)) continue;
       await walk(path, files);
     } else {
       if (skippedFiles.has(relative(root, path))) continue;
