@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
+  <title id="title">BridgeDeck configuration example</title>
+  <desc id="desc">Options-style card showing local BridgeDeck adapter settings.</desc>
+  <rect width="1400" height="560" fill="#0D0E12"/>
+  <text x="56" y="80" fill="#F6F3EE" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700">Optional BridgeDeck Local Adapter</text>
+  <rect x="320" y="128" width="760" height="340" rx="8" fill="#14161C" stroke="#2A2E38"/>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif">
+    <text x="368" y="190" fill="#F6F3EE" font-size="24" font-weight="650">Options</text>
+    <text x="368" y="246" fill="#8E95A3" font-size="18">Base URL</text>
+    <rect x="368" y="264" width="664" height="44" rx="8" fill="#0D0E12" stroke="#3D4350"/>
+    <text x="392" y="293" fill="#F6F3EE" font-size="18">http://127.0.0.1:8876/v1</text>
+    <text x="368" y="350" fill="#8E95A3" font-size="18">API Key</text>
+    <rect x="368" y="368" width="300" height="44" rx="8" fill="#0D0E12" stroke="#3D4350"/>
+    <text x="392" y="397" fill="#F6F3EE" font-size="18">local-bridge</text>
+    <text x="704" y="350" fill="#8E95A3" font-size="18">Model</text>
+    <rect x="704" y="368" width="328" height="44" rx="8" fill="#0D0E12" stroke="#3D4350"/>
+    <text x="728" y="397" fill="#F6F3EE" font-size="18">gpt-5.5</text>
+    <rect x="368" y="434" width="286" height="42" rx="8" fill="#FF6A1A"/>
+    <text x="392" y="462" fill="#0D0E12" font-size="18" font-weight="700">Save and test</text>
+  </g>
+</svg>

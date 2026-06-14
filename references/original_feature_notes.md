@@ -63,9 +63,9 @@ Content-Type: application/json
 已验证 BridgeDeck 支持 vision：
 
 ```text
-Base URL: http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1
+Base URL: http://127.0.0.1:8876/v1
 Model: gpt-5.5
-API Key: dummy
+API Key: local-bridge
 Result: image_url 输入可用，红色测试图返回 Red。
 ```
 

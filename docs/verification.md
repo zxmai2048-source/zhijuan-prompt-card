@@ -43,7 +43,7 @@
 
 ## BridgeDeck
 
-- Base URL: `http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1`
+- Base URL: `http://127.0.0.1:8876/v1`
 - API key: `local-bridge`
 - Model: `gpt-5.5`
 - Vision request: pass

@@ -28,8 +28,8 @@ Recreate the experience and visual quality of the reference plugin, but make it 
 Default config:
 
 ```text
-Base URL: http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1
-API Key: dummy
+Base URL: http://127.0.0.1:8876/v1
+API Key: local-bridge
 Model: gpt-5.5
 ```
 
@@ -114,7 +114,7 @@ Content-Type: application/json
 Tested good BridgeDeck default:
 
 ```text
-http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1/chat/completions
+http://127.0.0.1:8876/v1/chat/completions
 ```
 
 ---
@@ -693,8 +693,8 @@ npm run build
 3. Configure:
 
 ```text
-Base URL: http://127.0.0.1:8876/accounts/7e517757-60eb-4e9d-8e3a-1ad7d6731dea/v1
-API Key: dummy
+Base URL: http://127.0.0.1:8876/v1
+API Key: local-bridge
 Model: gpt-5.5
 ```
 

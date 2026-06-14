@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620" role="img" aria-labelledby="title desc">
+  <title id="title">Prompt output preview</title>
+  <desc id="desc">Prompt output cards for multilingual prompts, JSON, negative prompt, style tags, and recreation prompt.</desc>
+  <rect width="1400" height="620" fill="#0D0E12"/>
+  <text x="56" y="78" fill="#F6F3EE" font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="34" font-weight="700">Structured Prompt Output</text>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-size="20">
+    <rect x="56" y="126" width="388" height="104" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="88" y="170" fill="#F6F3EE" font-weight="650">中文 Prompt</text>
+    <rect x="88" y="190" width="240" height="12" rx="6" fill="#8E95A3"/>
+    <rect x="506" y="126" width="388" height="104" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="538" y="170" fill="#F6F3EE" font-weight="650">EN Prompt</text>
+    <rect x="538" y="190" width="258" height="12" rx="6" fill="#8E95A3"/>
+    <rect x="956" y="126" width="388" height="104" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="988" y="170" fill="#F6F3EE" font-weight="650">Japanese Prompt</text>
+    <rect x="988" y="190" width="220" height="12" rx="6" fill="#8E95A3"/>
+    <rect x="56" y="272" width="388" height="104" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="88" y="316" fill="#F6F3EE" font-weight="650">JSON</text>
+    <rect x="88" y="336" width="286" height="12" rx="6" fill="#8E95A3"/>
+    <rect x="506" y="272" width="388" height="104" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="538" y="316" fill="#F6F3EE" font-weight="650">Negative</text>
+    <rect x="538" y="336" width="250" height="12" rx="6" fill="#8E95A3"/>
+    <rect x="956" y="272" width="388" height="104" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="988" y="316" fill="#F6F3EE" font-weight="650">Style Tags</text>
+    <rect x="988" y="336" width="80" height="20" rx="8" fill="#FF6A1A"/>
+    <rect x="1080" y="336" width="112" height="20" rx="8" fill="#3D4350"/>
+    <rect x="1204" y="336" width="76" height="20" rx="8" fill="#3D4350"/>
+    <rect x="56" y="418" width="1288" height="126" rx="8" fill="#14161C" stroke="#2A2E38"/>
+    <text x="88" y="462" fill="#F6F3EE" font-weight="650">Recreation Prompt</text>
+    <rect x="88" y="488" width="930" height="12" rx="6" fill="#8E95A3"/>
+    <rect x="88" y="516" width="760" height="12" rx="6" fill="#8E95A3"/>
+  </g>
+</svg>

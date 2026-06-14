@@ -24,7 +24,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "esbuild": "latest",
+    "esbuild": "^0.28.1",
     "playwright": "^1.60.0",
     "tsx": "latest"
   }
