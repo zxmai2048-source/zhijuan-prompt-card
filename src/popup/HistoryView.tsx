@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { canShowHistoryImage, getHistoryImageKey, getHistoryImageSrc, getHistoryPreviewText, getHistoryPrompt, getHistorySource, getHistoryStatusLabel, getVisualHistoryEntries } from '../shared/historyDisplay';
 import { clearHistory, deleteHistoryEntry, getHistory, updateHistoryEntry } from '../shared/storage';
 import type { HistoryEntry, InterfaceLanguage } from '../shared/types';
 
 const historyCopy = {
   en: {
     back: 'Back',
-    history: 'Local records',
-    localEntries: 'local entries',
+    history: 'History records',
+    localEntries: 'records',
     refresh: 'Refresh',
-    clearAll: 'Clear local records',
+    clearAll: 'Clear history',
     copyPrompt: 'Copy prompt',
     copyJson: 'Copy JSON',
     copySource: 'Copy source',
@@ -20,6 +21,8 @@ const historyCopy = {
     storageUsage: 'Storage used',
     copyStoragePath: 'Copy storage path',
     storagePathCopied: 'Storage path copied',
+    visualHistory: 'Visual history',
+    noImage: 'No preview',
     saved: 'Saved',
     save: 'Save',
     delete: 'Delete',
@@ -27,10 +30,10 @@ const historyCopy = {
   },
   zh: {
     back: '返回',
-    history: '本地记录',
-    localEntries: '条本地记录',
+    history: '历史记录',
+    localEntries: '条记录',
     refresh: '刷新',
-    clearAll: '清空本地记录',
+    clearAll: '清空历史',
     copyPrompt: '复制提示词',
     copyJson: '复制 JSON',
     copySource: '复制来源',
@@ -42,6 +45,8 @@ const historyCopy = {
     storageUsage: '存储占用',
     copyStoragePath: '复制存储路径',
     storagePathCopied: '已复制存储路径',
+    visualHistory: '视觉历史',
+    noImage: '无预览',
     saved: '已保存',
     save: '保存',
     delete: '删除',
@@ -53,6 +58,9 @@ export function HistoryView(props: { entries: HistoryEntry[]; language: Interfac
   const labels = historyCopy[props.language === 'zh' ? 'zh' : 'en'];
   const [notice, setNotice] = useState('');
   const [storageUsage, setStorageUsage] = useState('');
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, string>>({});
+  const visualEntries = useMemo(() => getVisualHistoryEntries(props.entries), [props.entries]);
 
   useEffect(() => {
     void refreshStorageUsage();
@@ -94,6 +102,16 @@ export function HistoryView(props: { entries: HistoryEntry[]; language: Interfac
     setStorageUsage(formatBytes(bytes));
   }
 
+  function markImageFailed(key: string) {
+    setFailedImages((current) => current[key] ? current : { ...current, [key]: true });
+  }
+
+  function rememberImageAspect(imageKey: string, image: HTMLImageElement) {
+    const ratio = getLoadedImageAspectRatio(image);
+    if (!ratio) return;
+    setImageAspectRatios((current) => current[imageKey] === ratio ? current : { ...current, [imageKey]: ratio });
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header compact">
@@ -105,6 +123,35 @@ export function HistoryView(props: { entries: HistoryEntry[]; language: Interfac
           <h1>{props.entries.length} {labels.localEntries}</h1>
         </div>
       </header>
+
+      {visualEntries.length ? (
+        <section className="history-visual-grid" aria-label={labels.visualHistory}>
+          {visualEntries.map((entry) => {
+            const imageUrl = getHistoryImageSrc(entry);
+            const imageKey = getHistoryImageKey(entry, imageUrl);
+            const imageFailed = Boolean(imageUrl && failedImages[imageKey]);
+            const preview = getHistoryPreviewText(entry, props.language);
+            const showImage = canShowHistoryImage(entry, imageUrl) && !imageFailed;
+            return (
+              <article className="history-visual-card" key={entry.id} tabIndex={0} aria-label={`${entry.title}. ${preview}`} style={getHistoryImageAspectStyle(imageKey, imageAspectRatios)}>
+                <div className="history-visual-card__media">
+                  {showImage ? (
+                    <img src={imageUrl} alt="" loading="lazy" onLoad={(event) => rememberImageAspect(imageKey, event.currentTarget)} onError={() => markImageFailed(imageKey)} />
+                  ) : (
+                    <div className="history-visual-card__placeholder" aria-hidden="true">
+                      <span>{labels.noImage}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="history-visual-card__overlay">
+                  <strong>{entry.title}</strong>
+                  <p>{preview}</p>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
 
       <div className="quick-grid two">
         <button type="button" onClick={() => void refresh()}>
@@ -133,56 +180,70 @@ export function HistoryView(props: { entries: HistoryEntry[]; language: Interfac
 
       <section className="history-list">
         {props.entries.map((entry) => {
-          const source = getEntrySource(entry);
-          const prompt = getEntryPrompt(entry);
+          const source = getHistorySource(entry);
+          const prompt = getHistoryPrompt(entry, props.language);
+          const preview = getHistoryPreviewText(entry, props.language);
+          const imageUrl = getHistoryImageSrc(entry);
+          const imageKey = getHistoryImageKey(entry, imageUrl);
+          const imageFailed = Boolean(imageUrl && failedImages[imageKey]);
+          const showImage = canShowHistoryImage(entry, imageUrl) && !imageFailed;
           return (
             <article className="history-item" key={entry.id}>
-              <div className="history-item__top">
-                <strong>{entry.title}</strong>
-                <span className={entry.status}>{getStatusLabel(entry.status, props.language)}</span>
+              <div className={`history-item__media is-${entry.status}`} style={getHistoryImageAspectStyle(imageKey, imageAspectRatios)}>
+                {showImage ? (
+                  <img src={imageUrl} alt="" loading="lazy" onLoad={(event) => rememberImageAspect(imageKey, event.currentTarget)} onError={() => markImageFailed(imageKey)} />
+                ) : (
+                  <div className="history-item__placeholder" aria-hidden="true">
+                    <span>{labels.noImage}</span>
+                  </div>
+                )}
               </div>
-              <p>{new Date(entry.createdAt).toLocaleString()}</p>
-              {prompt ? (
+              <div className="history-item__body">
+                <div className="history-item__top">
+                  <strong>{entry.title}</strong>
+                  <span className={entry.status}>{getHistoryStatusLabel(entry.status, props.language)}</span>
+                </div>
+                <p>{new Date(entry.createdAt).toLocaleString()}</p>
                 <div className="history-prompt-preview">
                   <div className="history-preview-head">
                     <span>{labels.promptPreview}</span>
-                    <button type="button" onClick={() => void copy(prompt)}>
+                    <button type="button" disabled={!prompt} onClick={() => prompt && void copy(prompt)}>
                       {labels.copyPrompt}
                     </button>
                   </div>
-                  <p>{prompt}</p>
+                  <p>{preview}</p>
                 </div>
-              ) : null}
-              {source ? (
-                <p className="history-source">
-                  <span>{labels.source}: </span>
-                  {source}
-                </p>
-              ) : null}
-              {entry.error ? <p className="error-text">{entry.error}</p> : null}
-              <div className="history-actions">
-                <button
-                  type="button"
-                  disabled={!entry.analysis}
-                  onClick={() => entry.analysis && void copy(entry.analysis.recreation_prompt)}
-                >
-                  {labels.copyPrompt}
-                </button>
-                <button type="button" disabled={!entry.analysis} onClick={() => entry.analysis && void copy(JSON.stringify(entry.analysis, null, 2))}>
-                  {labels.copyJson}
-                </button>
-                <button type="button" disabled={!source} onClick={() => source && void copy(source)}>
-                  {labels.copySource}
-                </button>
-                <button type="button" disabled={!isOpenableSource(source)} onClick={() => source && void chrome.tabs.create({ url: source })}>
-                  {labels.openSource}
-                </button>
-                <button type="button" onClick={() => void toggle(entry)}>
-                  {entry.favorite ? labels.saved : labels.save}
-                </button>
-                <button type="button" onClick={() => void remove(entry.id)}>
-                  {labels.delete}
-                </button>
+                {source ? (
+                  <p className="history-source">
+                    <span>{labels.source}: </span>
+                    {source}
+                  </p>
+                ) : null}
+                {entry.error && prompt ? <p className="error-text">{entry.error}</p> : null}
+                <div className="history-actions">
+                  <button
+                    type="button"
+                    disabled={!prompt}
+                    onClick={() => prompt && void copy(prompt)}
+                  >
+                    {labels.copyPrompt}
+                  </button>
+                  <button type="button" disabled={!entry.analysis} onClick={() => entry.analysis && void copy(JSON.stringify(entry.analysis, null, 2))}>
+                    {labels.copyJson}
+                  </button>
+                  <button type="button" disabled={!source} onClick={() => source && void copy(source)}>
+                    {labels.copySource}
+                  </button>
+                  <button type="button" disabled={!isOpenableSource(source)} onClick={() => source && void chrome.tabs.create({ url: source })}>
+                    {labels.openSource}
+                  </button>
+                  <button type="button" onClick={() => void toggle(entry)}>
+                    {entry.favorite ? labels.saved : labels.save}
+                  </button>
+                  <button type="button" onClick={() => void remove(entry.id)}>
+                    {labels.delete}
+                  </button>
+                </div>
               </div>
             </article>
           );
@@ -193,24 +254,18 @@ export function HistoryView(props: { entries: HistoryEntry[]; language: Interfac
   );
 }
 
-function getEntrySource(entry: HistoryEntry): string | undefined {
-  return entry.imageUrl || entry.pageUrl;
-}
-
-function getEntryPrompt(entry: HistoryEntry): string | undefined {
-  return entry.analysis?.recreation_prompt || entry.analysis?.en.prompt || entry.analysis?.zh.prompt;
-}
-
 function isOpenableSource(source: string | undefined): boolean {
   return Boolean(source && /^(https?:|file:|data:)/i.test(source));
 }
 
-function getStatusLabel(status: HistoryEntry['status'], language: InterfaceLanguage): string {
-  if (language !== 'zh') return status;
-  if (status === 'success') return '成功';
-  if (status === 'failed') return '失败';
-  if (status === 'running') return '运行中';
-  return '已取消';
+function getLoadedImageAspectRatio(image: HTMLImageElement): string | undefined {
+  if (!image.naturalWidth || !image.naturalHeight) return undefined;
+  return `${image.naturalWidth} / ${image.naturalHeight}`;
+}
+
+function getHistoryImageAspectStyle(imageKey: string, ratios: Record<string, string>): CSSProperties | undefined {
+  const ratio = ratios[imageKey];
+  return ratio ? ({ '--zpc-history-image-ratio': ratio } as CSSProperties) : undefined;
 }
 
 function getStorageLocationHint(): string {

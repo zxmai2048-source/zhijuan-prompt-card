@@ -3,7 +3,11 @@ import type { AppSettings, HistoryEntry, PromptAnalysis } from './types';
 
 type StorageRecord = Record<string, unknown>;
 
+const THUMBNAIL_MAX_BYTES = 180_000;
+const THUMBNAIL_BUDGET_BYTES = 5_400_000;
+const THUMBNAIL_KEEP_LIMIT = 80;
 const memoryStorage = new Map<string, unknown>();
+let historyMutationQueue: Promise<unknown> = Promise.resolve();
 
 function hasChromeStorage(): boolean {
   return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
@@ -43,48 +47,60 @@ export async function getHistory(): Promise<HistoryEntry[]> {
 }
 
 export async function addHistoryEntry(entry: HistoryEntry): Promise<HistoryEntry[]> {
-  const history = await getHistory();
-  const next = [entry, ...history.filter((item) => item.id !== entry.id)].slice(0, HISTORY_LIMIT);
-  await writeLocal({ [STORAGE_KEYS.history]: next });
-  return next;
+  return enqueueHistoryMutation(async () => {
+    const history = await getHistory();
+    const next = compactHistoryEntries([entry, ...history.filter((item) => item.id !== entry.id)].slice(0, HISTORY_LIMIT));
+    await writeLocal({ [STORAGE_KEYS.history]: next });
+    return next;
+  });
 }
 
 export async function updateHistoryEntry(id: string, patch: Partial<HistoryEntry>): Promise<HistoryEntry | undefined> {
-  const history = await getHistory();
-  let updated: HistoryEntry | undefined;
-  const next = history.map((entry) => {
-    if (entry.id !== id) return entry;
-    updated = { ...entry, ...patch };
+  return enqueueHistoryMutation(async () => {
+    const history = await getHistory();
+    let updated: HistoryEntry | undefined;
+    const next = history.map((entry) => {
+      if (entry.id !== id) return entry;
+      updated = { ...entry, ...patch };
+      return updated;
+    });
+    await writeLocal({ [STORAGE_KEYS.history]: compactHistoryEntries(next) });
     return updated;
   });
-  await writeLocal({ [STORAGE_KEYS.history]: next });
-  return updated;
 }
 
 export async function failRunningHistoryEntries(error = '上次识别未完成，已自动结束。'): Promise<void> {
-  const history = await getHistory();
-  const next = history.map((entry) => (entry.status === 'running' ? { ...entry, status: 'failed' as const, error } : entry));
-  await writeLocal({ [STORAGE_KEYS.history]: next });
+  await enqueueHistoryMutation(async () => {
+    const history = await getHistory();
+    const next = history.map((entry) => (entry.status === 'running' ? { ...entry, status: 'failed' as const, error } : entry));
+    await writeLocal({ [STORAGE_KEYS.history]: compactHistoryEntries(next) });
+  });
 }
 
 export async function compactHistoryStorage(): Promise<void> {
-  const history = await getHistory();
-  const next = history.map((entry) => (entry.imageUrl?.startsWith('data:') ? { ...entry, imageUrl: undefined } : entry));
-  await writeLocal({ [STORAGE_KEYS.history]: next });
+  await enqueueHistoryMutation(async () => {
+    const history = await getHistory();
+    await writeLocal({ [STORAGE_KEYS.history]: compactHistoryEntries(history) });
+  });
 }
 
 export async function deleteHistoryEntry(id: string): Promise<HistoryEntry[]> {
-  const next = (await getHistory()).filter((entry) => entry.id !== id);
-  await writeLocal({ [STORAGE_KEYS.history]: next });
-  return next;
+  return enqueueHistoryMutation(async () => {
+    const next = (await getHistory()).filter((entry) => entry.id !== id);
+    await writeLocal({ [STORAGE_KEYS.history]: next });
+    return next;
+  });
 }
 
 export async function clearHistory(): Promise<void> {
-  await writeLocal({ [STORAGE_KEYS.history]: [] });
+  await enqueueHistoryMutation(async () => {
+    await writeLocal({ [STORAGE_KEYS.history]: [] });
+  });
 }
 
 export function createRunningHistoryEntry(input: {
   imageUrl?: string;
+  thumbnailUrl?: string;
   pageUrl?: string;
   title?: string;
 }): HistoryEntry {
@@ -92,11 +108,45 @@ export function createRunningHistoryEntry(input: {
     id: createId(),
     createdAt: new Date().toISOString(),
     imageUrl: input.imageUrl,
+    thumbnailUrl: input.thumbnailUrl,
     pageUrl: input.pageUrl,
     title: input.title || 'Running analysis',
     favorite: false,
     status: 'running'
   };
+}
+
+function compactHistoryEntries(history: HistoryEntry[]): HistoryEntry[] {
+  let thumbnailBytes = 0;
+  let thumbnailCount = 0;
+
+  return history.slice(0, HISTORY_LIMIT).map((entry) => {
+    const next = entry.imageUrl?.startsWith('data:') ? { ...entry, imageUrl: undefined } : { ...entry };
+    const thumbnailUrl = next.thumbnailUrl;
+    if (!thumbnailUrl) return next;
+
+    const bytes = estimateAsciiBytes(thumbnailUrl);
+    if (!thumbnailUrl.startsWith('data:image/') || bytes > THUMBNAIL_MAX_BYTES || thumbnailCount >= THUMBNAIL_KEEP_LIMIT || thumbnailBytes + bytes > THUMBNAIL_BUDGET_BYTES) {
+      return { ...next, thumbnailUrl: undefined };
+    }
+
+    thumbnailBytes += bytes;
+    thumbnailCount += 1;
+    return next;
+  });
+}
+
+function enqueueHistoryMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const run = historyMutationQueue.catch(() => undefined).then(operation);
+  historyMutationQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
+function estimateAsciiBytes(value: string): number {
+  return value.length;
 }
 
 export function buildHistoryTitle(analysis?: PromptAnalysis, fallback = 'Untitled image'): string {

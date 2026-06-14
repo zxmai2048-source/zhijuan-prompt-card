@@ -39,8 +39,32 @@ export async function resizeDataUrl(input: string, maxSide = 2200, quality = 0.9
   const width = Math.max(1, Math.round(bitmap.width * normalizedScale));
   const height = Math.max(1, Math.round(bitmap.height * normalizedScale));
   try {
-    const output = await drawBitmapToPngDataUrl(bitmap, width, height);
+    const output = await drawBitmapToDataUrl(bitmap, width, height, 'image/png', quality);
     return output;
+  } finally {
+    bitmap.close?.();
+  }
+}
+
+export async function createThumbnailDataUrl(input: string, maxSide = 220, quality = 0.72, signal?: AbortSignal): Promise<string> {
+  throwIfAborted(signal);
+  if (typeof createImageBitmap === 'undefined') return input;
+
+  const blob = await dataUrlToBlob(input);
+  throwIfAborted(signal);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(blob);
+  } catch {
+    throw new Error('图片无法被 Chrome 解码。请换成 JPG、PNG、GIF 或 WebP 后再上传。');
+  }
+
+  throwIfAborted(signal);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  try {
+    return await drawBitmapToDataUrl(bitmap, width, height, 'image/webp', quality);
   } finally {
     bitmap.close?.();
   }
@@ -69,13 +93,13 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   return response.blob();
 }
 
-async function drawBitmapToPngDataUrl(bitmap: ImageBitmap, width: number, height: number): Promise<string> {
+async function drawBitmapToDataUrl(bitmap: ImageBitmap, width: number, height: number, type: string, quality?: number): Promise<string> {
   if (typeof OffscreenCanvas !== 'undefined') {
     const canvas = new OffscreenCanvas(width, height);
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas is unavailable.');
     context.drawImage(bitmap, 0, 0, width, height);
-    return blobToDataUrl(await canvas.convertToBlob({ type: 'image/png' }));
+    return blobToDataUrl(await canvas.convertToBlob({ type, quality }));
   }
 
   if (typeof document !== 'undefined') {
@@ -85,7 +109,7 @@ async function drawBitmapToPngDataUrl(bitmap: ImageBitmap, width: number, height
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas is unavailable.');
     context.drawImage(bitmap, 0, 0, width, height);
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL(type, quality);
   }
 
   throw new Error('This image format cannot be converted by Chrome. Use JPG, PNG, GIF, or WebP.');

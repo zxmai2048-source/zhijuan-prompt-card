@@ -433,11 +433,11 @@ async function run() {
     }
     evidence.checks.push('collapsed_actions_show_on_hover_ok');
 
-    await clickShadow(page, { text: '历史提示词', exact: true });
+    await clickShadow(page, { text: '历史记录', exact: true });
     await page.waitForFunction(
       () => {
         const root = document.getElementById('zhijuan-prompt-root')?.shadowRoot;
-        return (root?.textContent || '').includes('历史提示词') && (root?.textContent || '').includes('条记录');
+        return (root?.textContent || '').includes('历史记录') && (root?.textContent || '').includes('条记录');
       },
       null,
       { timeout: 10_000 }

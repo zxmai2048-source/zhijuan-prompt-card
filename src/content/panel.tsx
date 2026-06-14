@@ -1,6 +1,7 @@
-import { type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalysisPhase, GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, PanelTab, PromptAnalysis } from '../shared/types';
 import { GENERATOR_SITES } from '../shared/generators';
+import { canShowHistoryImage, getHistoryImageKey, getHistoryImageSrc, getHistoryPreviewText, getHistoryPrompt, getHistoryStatusLabel } from '../shared/historyDisplay';
 
 export interface PanelState {
   open: boolean;
@@ -31,6 +32,7 @@ export interface PanelProps {
   onRefreshHistory: () => void;
   onSelectHistoryEntry: (entry: HistoryEntry) => void;
   onDeleteHistoryEntry: (id: string) => void;
+  onClearHistory: () => void;
   onOpenSettings: () => void;
   onCopy: (text: string, label: string) => void;
   onRegenerate: () => void;
@@ -40,6 +42,11 @@ export interface PanelProps {
 }
 
 type UiLanguage = 'zh' | 'en';
+type HistoryDrawerSize = 'compact' | 'large' | 'xlarge';
+const HISTORY_DRAWER_MIN_WIDTH = 220;
+const HISTORY_DRAWER_DEFAULT_WIDTH = 300;
+const HISTORY_DRAWER_MAX_WIDTH = 430;
+const QUICK_HISTORY_DRAWER_LIMIT = 12;
 
 const copy = {
   en: {
@@ -95,7 +102,14 @@ const copy = {
     openPanel: 'Open image prompt panel',
     floatingLabel: 'Prompt lens',
     quickActions: 'Floating actions',
-    promptHistory: 'Prompt history',
+    promptHistory: 'History records',
+    quickHistory: 'Recent history',
+    promptPreview: 'Prompt preview',
+    resizeHistory: 'Resize history',
+    shrinkHistory: 'Shrink history',
+    growHistory: 'Enlarge history',
+    clearHistory: 'Clear history',
+    allHistory: 'All',
     historyCount: 'records',
     backToPanel: 'Back',
     refreshHistory: 'Refresh',
@@ -164,7 +178,14 @@ const copy = {
     openPanel: '打开识图面板',
     floatingLabel: '识图',
     quickActions: '悬浮快捷操作',
-    promptHistory: '历史提示词',
+    promptHistory: '历史记录',
+    quickHistory: '最近历史',
+    promptPreview: '提示词预览',
+    resizeHistory: '调整历史尺寸',
+    shrinkHistory: '缩小历史',
+    growHistory: '放大历史',
+    clearHistory: '清空历史',
+    allHistory: '全部',
     historyCount: '条记录',
     backToPanel: '返回',
     refreshHistory: '刷新',
@@ -191,9 +212,15 @@ export function Panel(props: PanelProps) {
   const chrome = usePanelChrome();
   const elapsedSeconds = useElapsedSeconds(state.loading, state.startedAt);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const historyTabHideTimer = useRef<number | undefined>(undefined);
   const [fileDragActive, setFileDragActive] = useState(false);
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+  const [historyDrawerWidth, setHistoryDrawerWidth] = useState(HISTORY_DRAWER_DEFAULT_WIDTH);
+  const [historyTabVisible, setHistoryTabVisible] = useState(false);
   const autoExpandToken = getAutoExpandToken(state, fileDragActive);
   const lastAutoExpandToken = useRef('');
+  const drawerHistoryEntries = props.historyEntries;
+  const quickHistoryEntries = drawerHistoryEntries.slice(0, QUICK_HISTORY_DRAWER_LIMIT);
 
   useEffect(() => {
     if (!autoExpandToken) {
@@ -244,6 +271,16 @@ export function Panel(props: PanelProps) {
     analyzeFile(firstImageFile(event.dataTransfer.files) ?? firstFile(event.dataTransfer.files));
   }
 
+  function showHistoryTab() {
+    window.clearTimeout(historyTabHideTimer.current);
+    setHistoryTabVisible(true);
+  }
+
+  function hideHistoryTabSoon() {
+    window.clearTimeout(historyTabHideTimer.current);
+    historyTabHideTimer.current = window.setTimeout(() => setHistoryTabVisible(false), 160);
+  }
+
   if (!state.open) {
     return null;
   }
@@ -251,15 +288,64 @@ export function Panel(props: PanelProps) {
   const collapsedEdge = chrome.position.x < window.innerWidth / 2 ? 'left' : 'right';
   const collapsedStack = chrome.position.y < 118 ? 'below' : chrome.position.y > window.innerHeight - 178 ? 'above' : 'split';
 
+  const showHistoryAccess = state.view !== 'history' && !chrome.collapsed && !state.loading && !state.picking && drawerHistoryEntries.length > 0 && hasHistoryDrawerRoom(chrome.position);
+  const historyDrawerSize = getHistoryDrawerSizeFromWidth(historyDrawerWidth);
+  const historyAccessSide = getHistoryAccessSide(chrome.position, historyDrawerWidth);
+  const historyDrawerPlacement = getHistoryDrawerPlacement(chrome.position, historyDrawerOpen, historyDrawerWidth);
+  const historyTabPlacement = getHistoryTabPlacement(chrome.position, historyAccessSide);
+
   return (
-    <section
-      className={chrome.collapsed ? 'zpc-panel zpc-panel--collapsed' : 'zpc-panel'}
-      aria-live="polite"
-      data-state={state.loading ? 'loading' : analysis ? 'result' : state.error ? 'error' : 'ready'}
-      data-edge={collapsedEdge}
-      data-stack={collapsedStack}
-      style={{ left: chrome.position.x, top: chrome.position.y }}
-    >
+    <>
+      {showHistoryAccess && historyDrawerOpen ? (
+        <QuickHistoryStrip
+          entries={quickHistoryEntries}
+          totalCount={drawerHistoryEntries.length}
+          labels={labels}
+          uiLanguage={language}
+          open={historyDrawerOpen}
+          size={historyDrawerSize}
+          width={historyDrawerWidth}
+          side={historyDrawerPlacement.side}
+          style={historyDrawerPlacement.style}
+          onToggle={() => setHistoryDrawerOpen((open) => !open)}
+          onSizeChange={(direction) => setHistoryDrawerWidth((width) => clampHistoryDrawerWidth(width + direction * 44))}
+          onWidthChange={(width) => setHistoryDrawerWidth(clampHistoryDrawerWidth(width))}
+          onOpenHistory={props.onOpenHistory}
+          onClearHistory={props.onClearHistory}
+          onCopy={props.onCopy}
+          onSelect={props.onSelectHistoryEntry}
+        />
+      ) : null}
+      {showHistoryAccess && !historyDrawerOpen ? (
+        <button
+          className={`zpc-history-tab is-${historyAccessSide}${historyDrawerOpen ? ' is-active' : ''}${historyTabVisible || historyDrawerOpen ? ' is-visible' : ''}`}
+          type="button"
+          style={historyTabPlacement}
+          onMouseEnter={showHistoryTab}
+          onMouseLeave={hideHistoryTabSoon}
+          onFocus={showHistoryTab}
+          onBlur={hideHistoryTabSoon}
+          onClick={() => setHistoryDrawerOpen((open) => !open)}
+          aria-label={labels.promptHistory}
+          title={labels.promptHistory}
+          aria-expanded={historyDrawerOpen}
+        >
+          <IconHistory />
+          <span>{drawerHistoryEntries.length}</span>
+        </button>
+      ) : null}
+      <section
+        className={chrome.collapsed ? 'zpc-panel zpc-panel--collapsed' : 'zpc-panel'}
+        aria-live="polite"
+        data-state={state.loading ? 'loading' : analysis ? 'result' : state.error ? 'error' : 'ready'}
+        data-edge={collapsedEdge}
+        data-stack={collapsedStack}
+        style={{ left: chrome.position.x, top: chrome.position.y }}
+        onMouseEnter={showHistoryTab}
+        onMouseLeave={hideHistoryTabSoon}
+        onFocus={showHistoryTab}
+        onBlur={hideHistoryTabSoon}
+      >
       <div className="zpc-panel__edge" />
       <header
         className="zpc-panel__header"
@@ -369,6 +455,7 @@ export function Panel(props: PanelProps) {
               onCopy={props.onCopy}
               onSelect={props.onSelectHistoryEntry}
               onDelete={props.onDeleteHistoryEntry}
+              onClear={props.onClearHistory}
             />
           ) : (
           <div className="zpc-workspace">
@@ -413,7 +500,275 @@ export function Panel(props: PanelProps) {
           )}
         </div>
       ) : null}
+      </section>
+    </>
+  );
+}
+
+function QuickHistoryStrip(props: {
+  entries: HistoryEntry[];
+  totalCount: number;
+  labels: (typeof copy)[UiLanguage];
+  uiLanguage: UiLanguage;
+  open: boolean;
+  size: HistoryDrawerSize;
+  width: number;
+  side: 'left' | 'right';
+  style: CSSProperties;
+  onToggle: () => void;
+  onSizeChange: (direction: -1 | 1) => void;
+  onWidthChange: (width: number) => void;
+  onOpenHistory: () => void;
+  onClearHistory: () => void;
+  onCopy: (text: string, label: string) => void;
+  onSelect: (entry: HistoryEntry) => void;
+}) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const previewHideTimer = useRef<number | undefined>(undefined);
+  const [previewEntryId, setPreviewEntryId] = useState<string>();
+  const [previewTop, setPreviewTop] = useState<number>();
+  const [brokenImageKeys, setBrokenImageKeys] = useState<Set<string>>(() => new Set());
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
+  const previewEntry = props.entries.find((entry) => entry.id === previewEntryId);
+  const previewText = previewEntry ? getHistoryPreviewText(previewEntry, props.uiLanguage) : '';
+  const previewEntryIndex = previewEntry ? props.entries.findIndex((entry) => entry.id === previewEntry.id) : -1;
+
+  useEffect(() => {
+    if (previewEntryId && !props.entries.some((entry) => entry.id === previewEntryId)) setPreviewEntryId(undefined);
+  }, [props.entries, previewEntryId]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(previewHideTimer.current);
+  }, []);
+
+  function clearPreviewHideTimer() {
+    window.clearTimeout(previewHideTimer.current);
+    previewHideTimer.current = undefined;
+  }
+
+  function hidePreview() {
+    setPreviewEntryId(undefined);
+    setPreviewTop(undefined);
+  }
+
+  function showPreview(entryId: string, anchor?: HTMLElement) {
+    clearPreviewHideTimer();
+    if (anchor && sectionRef.current) {
+      const sectionRect = sectionRef.current.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+      const centeredTop = anchorRect.top + anchorRect.height / 2 - sectionRect.top;
+      setPreviewTop(clampPreviewTop(centeredTop, sectionRect.height));
+    }
+    setPreviewEntryId(entryId);
+  }
+
+  function schedulePreviewHide(delay = 1800) {
+    clearPreviewHideTimer();
+    previewHideTimer.current = window.setTimeout(hidePreview, delay);
+  }
+
+  function closePreview() {
+    clearPreviewHideTimer();
+    hidePreview();
+  }
+
+  function markImageBroken(entry: HistoryEntry, imageSrc: string) {
+    setBrokenImageKeys((current) => {
+      const key = getHistoryImageKey(entry, imageSrc);
+      if (current.has(key)) return current;
+      const next = new Set(current);
+      next.add(key);
+      return next;
+    });
+  }
+
+  function rememberImageAspect(imageKey: string, image: HTMLImageElement) {
+    const ratio = getLoadedImageAspectRatioNumber(image);
+    if (!ratio) return;
+    setImageAspectRatios((current) => current[imageKey] === ratio ? current : { ...current, [imageKey]: ratio });
+  }
+
+  function handleSelect(entry: HistoryEntry) {
+    closePreview();
+    props.onSelect(entry);
+  }
+
+  function handleClearHistory() {
+    closePreview();
+    props.onClearHistory();
+  }
+
+  function handleCopyPreview() {
+    if (!previewText) return;
+    clearPreviewHideTimer();
+    props.onCopy(previewText, props.labels.promptCopied);
+    schedulePreviewHide(2200);
+  }
+
+  function handleResizePointerDown(event: ReactPointerEvent<HTMLSpanElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startWidth = props.width;
+    const side = props.side;
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const delta = side === 'left' ? startX - moveEvent.clientX : moveEvent.clientX - startX;
+      props.onWidthChange(startWidth + delta);
+    };
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp, { once: true });
+  }
+
+  return (
+    <section
+      ref={sectionRef}
+      className={`zpc-quick-history is-${props.side} is-${props.size}${props.open ? ' is-open' : ''}`}
+      aria-label={props.labels.quickHistory}
+      style={props.style}
+      onMouseEnter={clearPreviewHideTimer}
+      onMouseLeave={() => schedulePreviewHide()}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) schedulePreviewHide(900);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        closePreview();
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <button className="zpc-quick-history__toggle" type="button" onClick={props.onToggle} aria-expanded={props.open}>
+        <IconHistory />
+        <span>{props.labels.quickHistory}</span>
+        {props.open ? <strong>{props.totalCount}</strong> : null}
+      </button>
+      {props.open ? (
+        <div className="zpc-quick-history__content">
+          <div className="zpc-quick-history__head">
+            <span>{formatQuickHistoryCount(props.entries.length, props.totalCount)} {props.labels.historyCount}</span>
+            <div className="zpc-quick-history__tools">
+              <button type="button" onClick={() => props.onSizeChange(-1)} disabled={props.size === 'compact'} aria-label={props.labels.shrinkHistory} title={props.labels.shrinkHistory}>
+                <IconMinus />
+              </button>
+              <button type="button" onClick={() => props.onSizeChange(1)} disabled={props.size === 'xlarge'} aria-label={props.labels.growHistory} title={props.labels.growHistory}>
+                <IconPlus />
+              </button>
+              <button className="zpc-quick-history__danger" type="button" onClick={handleClearHistory} aria-label={props.labels.clearHistory} title={props.labels.clearHistory}>
+                <IconTrash />
+              </button>
+              <button className="zpc-quick-history__full" type="button" onClick={props.onOpenHistory} aria-label={props.labels.promptHistory} title={props.labels.promptHistory}>
+                {props.labels.allHistory}
+              </button>
+            </div>
+          </div>
+          <div className="zpc-quick-history__rail">
+            {props.entries.map((entry) => {
+              const imageSrc = getHistoryImageSrc(entry);
+              const imageKey = imageSrc ? getHistoryImageKey(entry, imageSrc) : '';
+              const canShowImage = canShowHistoryImage(entry, imageSrc) && !brokenImageKeys.has(imageKey);
+              const active = previewEntryId === entry.id;
+              const previewId = `zpc-quick-history-preview-${entry.id}`;
+              return (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={active ? 'zpc-quick-history-card is-active' : 'zpc-quick-history-card'}
+                  style={getQuickHistoryCardStyle(imageKey, imageAspectRatios, props.width)}
+                  key={entry.id}
+                  onMouseEnter={(event) => showPreview(entry.id, event.currentTarget)}
+                  onFocus={(event) => showPreview(entry.id, event.currentTarget)}
+                  onClick={() => handleSelect(entry)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    handleSelect(entry);
+                  }}
+                  aria-describedby={active && previewText ? previewId : undefined}
+                  aria-label={`${entry.title}. ${getHistoryStatusLabel(entry.status, props.uiLanguage)}. ${getHistoryPreviewText(entry, props.uiLanguage)}`}
+                >
+                  <span className={`zpc-quick-history-thumb is-${entry.status}`} style={getQuickHistoryThumbStyle(imageKey, imageAspectRatios, props.width)}>
+                    {canShowImage ? (
+                      <img
+                        className="zpc-quick-history-thumb__image"
+                        src={imageSrc}
+                        alt=""
+                        decoding="async"
+                        ref={(node) => {
+                          if (node?.complete) rememberImageAspect(imageKey, node);
+                        }}
+                        onLoad={(event) => rememberImageAspect(imageKey, event.currentTarget)}
+                        onError={() => markImageBroken(entry, imageSrc)}
+                      />
+                    ) : <HistoryPlaceholder status={entry.status} />}
+                  </span>
+                  <span className={`zpc-quick-history-status is-${entry.status}`} aria-hidden="true" />
+                </div>
+              );
+            })}
+          </div>
+          {previewEntry && previewText && previewEntryIndex >= 0 ? (
+            <div
+              className="zpc-quick-history-preview"
+              id={`zpc-quick-history-preview-${previewEntry.id}`}
+              role="status"
+              style={{ top: previewTop ?? getQuickHistoryPreviewTop(previewEntryIndex, props.width, getNumericCssValue(props.style.top)) }}
+              onMouseEnter={clearPreviewHideTimer}
+              onMouseLeave={() => schedulePreviewHide()}
+              onFocus={clearPreviewHideTimer}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) schedulePreviewHide(900);
+              }}
+            >
+              <div className="zpc-quick-history-preview__head">
+                <span>{props.labels.promptPreview}</span>
+                <div>
+                  <button type="button" onClick={handleCopyPreview}>{props.labels.copy}</button>
+                  <button type="button" onClick={closePreview} aria-label={props.labels.close} title={props.labels.close}>
+                    <IconClose />
+                  </button>
+                </div>
+              </div>
+              <strong>{previewEntry.title}</strong>
+              <p>{previewText}</p>
+            </div>
+          ) : null}
+          <span
+            className="zpc-quick-history__resize"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={props.labels.resizeHistory}
+            title={props.labels.resizeHistory}
+            onPointerDown={handleResizePointerDown}
+          />
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function HistoryPlaceholder({ status }: { status: HistoryEntry['status'] }) {
+  if (status === 'running') {
+    return (
+      <span className="zpc-history-placeholder zpc-history-placeholder--running" aria-hidden="true">
+        <span />
+      </span>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <span className="zpc-history-placeholder zpc-history-placeholder--failed" aria-hidden="true">
+        <IconStop />
+      </span>
+    );
+  }
+  return (
+    <span className="zpc-history-placeholder" aria-hidden="true">
+      <IconImage />
+    </span>
   );
 }
 
@@ -481,7 +836,27 @@ function HistoryBlock(props: {
   onCopy: (text: string, label: string) => void;
   onSelect: (entry: HistoryEntry) => void;
   onDelete: (id: string) => void;
+  onClear: () => void;
 }) {
+  const [brokenImageKeys, setBrokenImageKeys] = useState<Set<string>>(() => new Set());
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, string>>({});
+
+  function markImageBroken(entry: HistoryEntry, imageSrc: string) {
+    setBrokenImageKeys((current) => {
+      const key = getHistoryImageKey(entry, imageSrc);
+      if (current.has(key)) return current;
+      const next = new Set(current);
+      next.add(key);
+      return next;
+    });
+  }
+
+  function rememberImageAspect(imageKey: string, image: HTMLImageElement) {
+    const ratio = getLoadedImageAspectRatio(image);
+    if (!ratio) return;
+    setImageAspectRatios((current) => current[imageKey] === ratio ? current : { ...current, [imageKey]: ratio });
+  }
+
   return (
     <div className="zpc-workspace zpc-history-panel">
       <div className="zpc-history-head">
@@ -491,30 +866,40 @@ function HistoryBlock(props: {
         </div>
         <div className="zpc-history-head__actions">
           <button type="button" onClick={props.onRefresh}>{props.labels.refreshHistory}</button>
+          <button type="button" onClick={props.onClear} disabled={!props.entries.length}>{props.labels.clearHistory}</button>
           <button type="button" onClick={props.onBack}>{props.labels.backToPanel}</button>
         </div>
       </div>
       <div className="zpc-history-list">
         {props.entries.map((entry) => {
-          const prompt = getHistoryPrompt(entry);
+          const imageSrc = getHistoryImageSrc(entry);
+          const imageKey = imageSrc ? getHistoryImageKey(entry, imageSrc) : '';
+          const showImage = canShowHistoryImage(entry, imageSrc) && !brokenImageKeys.has(imageKey);
+          const prompt = getHistoryPrompt(entry, props.uiLanguage);
+          const preview = getHistoryPreviewText(entry, props.uiLanguage);
           return (
             <article className="zpc-history-item" key={entry.id}>
-              <div className="zpc-history-item__top">
-                <strong>{entry.title}</strong>
-                <span className={entry.status}>{getHistoryStatusLabel(entry.status, props.uiLanguage)}</span>
+              <div className={`zpc-history-item__thumb is-${entry.status}`} style={getHistoryImageAspectStyle(imageKey, imageAspectRatios)}>
+                {showImage ? <img src={imageSrc} alt="" loading="lazy" decoding="async" onLoad={(event) => rememberImageAspect(imageKey, event.currentTarget)} onError={() => markImageBroken(entry, imageSrc)} /> : <HistoryPlaceholder status={entry.status} />}
               </div>
-              <p className="zpc-history-date">{props.labels.createdAt}: {formatHistoryDate(entry.createdAt)}</p>
-              {prompt ? <p className="zpc-history-prompt">{prompt}</p> : entry.error ? <p className="zpc-history-error">{entry.error}</p> : null}
-              <div className="zpc-history-actions">
-                <button type="button" disabled={!entry.analysis} onClick={() => props.onSelect(entry)}>
-                  {props.labels.viewRecord}
-                </button>
-                <button type="button" disabled={!prompt} onClick={() => prompt && props.onCopy(prompt, props.labels.promptCopied)}>
-                  {props.labels.copy}
-                </button>
-                <button type="button" onClick={() => props.onDelete(entry.id)}>
-                  {props.labels.deleteRecord}
-                </button>
+              <div className="zpc-history-item__body">
+                <div className="zpc-history-item__top">
+                  <strong>{entry.title}</strong>
+                  <span className={entry.status}>{getHistoryStatusLabel(entry.status, props.uiLanguage)}</span>
+                </div>
+                <p className="zpc-history-date">{props.labels.createdAt}: {formatHistoryDate(entry.createdAt)}</p>
+                <p className={entry.error && !prompt ? 'zpc-history-error' : 'zpc-history-prompt'}>{preview}</p>
+                <div className="zpc-history-actions">
+                  <button type="button" disabled={!entry.analysis} onClick={() => props.onSelect(entry)}>
+                    {props.labels.viewRecord}
+                  </button>
+                  <button type="button" disabled={!prompt} onClick={() => prompt && props.onCopy(prompt, props.labels.promptCopied)}>
+                    {props.labels.copy}
+                  </button>
+                  <button type="button" onClick={() => props.onDelete(entry.id)}>
+                    {props.labels.deleteRecord}
+                  </button>
+                </div>
               </div>
             </article>
           );
@@ -545,16 +930,155 @@ function CollapsedActionButton(props: { label: string; onClick: () => void; chil
   );
 }
 
-function getHistoryPrompt(entry: HistoryEntry): string {
-  return entry.analysis?.recreation_prompt || entry.analysis?.zh.prompt || entry.analysis?.en.prompt || '';
+function formatQuickHistoryCount(visibleCount: number, totalCount: number): string {
+  return visibleCount === totalCount ? String(totalCount) : `${visibleCount} / ${totalCount}`;
 }
 
-function getHistoryStatusLabel(status: HistoryEntry['status'], language: UiLanguage): string {
-  if (language !== 'zh') return status;
-  if (status === 'success') return '成功';
-  if (status === 'failed') return '失败';
-  if (status === 'running') return '运行中';
-  return '已取消';
+function getQuickHistoryPreviewTop(index: number, width: number, drawerTop: number): number {
+  const drawerPadding = 6;
+  const toggleHeight = 42;
+  const contentGap = 8;
+  const headHeight = 25;
+  const railGap = 8;
+  const cardHeight = getHistoryCardHeight(width);
+  const rawTop = drawerPadding + toggleHeight + contentGap + headHeight + contentGap + index * (cardHeight + railGap) + cardHeight / 2;
+  const minTop = 112;
+  const maxTop = Math.max(minTop, window.innerHeight - drawerTop - 112);
+  return Math.min(maxTop, Math.max(minTop, rawTop));
+}
+
+function clampPreviewTop(top: number, drawerHeight: number): number {
+  const minTop = 72;
+  const maxTop = Math.max(minTop, drawerHeight - 72);
+  return Math.round(Math.min(maxTop, Math.max(minTop, top)));
+}
+
+function getNumericCssValue(value: CSSProperties['top']): number {
+  return typeof value === 'number' ? value : Number.parseFloat(String(value || 0)) || 0;
+}
+
+function getLoadedImageAspectRatio(image: HTMLImageElement): string | undefined {
+  if (!image.naturalWidth || !image.naturalHeight) return undefined;
+  return `${image.naturalWidth} / ${image.naturalHeight}`;
+}
+
+function getLoadedImageAspectRatioNumber(image: HTMLImageElement): number | undefined {
+  if (!image.naturalWidth || !image.naturalHeight) return undefined;
+  return image.naturalWidth / image.naturalHeight;
+}
+
+function getQuickHistoryThumbStyle(imageKey: string, ratios: Record<string, number>, drawerWidth: number): CSSProperties | undefined {
+  const ratio = ratios[imageKey];
+  if (!ratio) return undefined;
+  const thumbWidth = Math.max(1, drawerWidth - 34);
+  return { height: Math.max(72, Math.round(thumbWidth / ratio)) };
+}
+
+function getQuickHistoryCardStyle(imageKey: string, ratios: Record<string, number>, drawerWidth: number): CSSProperties | undefined {
+  const thumbStyle = getQuickHistoryThumbStyle(imageKey, ratios, drawerWidth);
+  if (!thumbStyle?.height || typeof thumbStyle.height !== 'number') return undefined;
+  return { height: thumbStyle.height + 14 };
+}
+
+function getHistoryImageAspectStyle(imageKey: string, ratios: Record<string, string>): CSSProperties | undefined {
+  const ratio = ratios[imageKey];
+  return ratio ? ({ '--zpc-history-image-ratio': ratio } as CSSProperties) : undefined;
+}
+
+function getHistoryDrawerPlacement(position: Pick<PanelChromeState, 'x' | 'y'>, open: boolean, width: number): { side: 'left' | 'right'; style: CSSProperties } {
+  const drawerWidth = open ? clampHistoryDrawerWidth(width) : 38;
+  const gap = 8;
+  const top = Math.min(window.innerHeight - 220, Math.max(PANEL_MARGIN, position.y));
+  const side = getHistoryAccessSide(position, drawerWidth);
+  const previewWidth = getHistoryPreviewWidth(position, side, drawerWidth);
+  const previewGap = 10;
+  const styleBase = {
+    top: Math.max(PANEL_MARGIN, top),
+    width: drawerWidth,
+    '--zpc-quick-history-width': `${drawerWidth}px`,
+    '--zpc-quick-history-thumb-height': `${getHistoryThumbHeight(drawerWidth)}px`,
+    '--zpc-quick-history-card-height': `${getHistoryCardHeight(drawerWidth)}px`,
+    '--zpc-quick-history-preview-width': `${previewWidth}px`,
+    '--zpc-quick-history-max-height': `${Math.max(180, window.innerHeight - Math.max(PANEL_MARGIN, top) - PANEL_MARGIN)}px`
+  } as CSSProperties;
+  if (side === 'left') {
+    return {
+      side: 'left',
+      style: {
+        ...styleBase,
+        left: Math.max(PANEL_MARGIN, position.x - drawerWidth - gap),
+        '--zpc-quick-history-preview-gap': `${previewGap}px`
+      } as CSSProperties
+    };
+  }
+  const panelWidth = Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+  return {
+    side: 'right',
+    style: {
+      ...styleBase,
+      left: Math.min(window.innerWidth - drawerWidth - PANEL_MARGIN, position.x + panelWidth + gap),
+      '--zpc-quick-history-preview-gap': `${previewGap}px`
+    } as CSSProperties
+  };
+}
+
+function hasHistoryDrawerRoom(position: Pick<PanelChromeState, 'x'>): boolean {
+  const drawerWidth = HISTORY_DRAWER_MIN_WIDTH;
+  const gap = 8;
+  const panelWidth = Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+  const hasLeft = position.x >= drawerWidth + gap + PANEL_MARGIN;
+  const hasRight = position.x + panelWidth + drawerWidth + gap <= window.innerWidth - PANEL_MARGIN;
+  return hasLeft || hasRight;
+}
+
+function getHistoryAccessSide(position: Pick<PanelChromeState, 'x'>, width: number): 'left' | 'right' {
+  const drawerWidth = clampHistoryDrawerWidth(width);
+  const gap = 8;
+  const minPreviewWidth = 180;
+  const panelWidth = Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+  const leftSpace = position.x - gap - PANEL_MARGIN;
+  const rightSpace = window.innerWidth - (position.x + panelWidth + gap) - PANEL_MARGIN;
+  const leftFitsDrawerAndPreview = leftSpace >= drawerWidth + gap + minPreviewWidth;
+  const rightFitsDrawerAndPreview = rightSpace >= drawerWidth + gap + minPreviewWidth;
+  if (leftFitsDrawerAndPreview) return 'left';
+  if (rightFitsDrawerAndPreview) return 'right';
+  if (leftSpace >= drawerWidth && leftSpace >= rightSpace) return 'left';
+  if (rightSpace >= drawerWidth) return 'right';
+  return leftSpace > rightSpace ? 'left' : 'right';
+}
+
+function getHistoryTabPlacement(position: Pick<PanelChromeState, 'x' | 'y'>, side: 'left' | 'right'): CSSProperties {
+  const panelWidth = Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+  const top = Math.max(PANEL_MARGIN, position.y + 20);
+  if (side === 'left') return { left: Math.max(PANEL_MARGIN, position.x - 31), top };
+  return { left: Math.min(window.innerWidth - 32 - PANEL_MARGIN, position.x + panelWidth - 1), top };
+}
+
+function getHistoryDrawerSizeFromWidth(width: number): HistoryDrawerSize {
+  if (width >= 340) return 'xlarge';
+  if (width >= 260) return 'large';
+  return 'compact';
+}
+
+function clampHistoryDrawerWidth(width: number): number {
+  return Math.round(Math.min(HISTORY_DRAWER_MAX_WIDTH, Math.max(HISTORY_DRAWER_MIN_WIDTH, width)));
+}
+
+function getHistoryThumbHeight(width: number): number {
+  return Math.round(Math.min(260, Math.max(150, width * 0.72)));
+}
+
+function getHistoryCardHeight(width: number): number {
+  return getHistoryThumbHeight(width) + 14;
+}
+
+function getHistoryPreviewWidth(position: Pick<PanelChromeState, 'x'>, side: 'left' | 'right', drawerWidth: number): number {
+  const gap = 18;
+  const panelWidth = Math.min(PANEL_EXPANDED_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+  const available = side === 'left'
+    ? position.x - drawerWidth - gap - PANEL_MARGIN
+    : window.innerWidth - (position.x + panelWidth + drawerWidth + gap) - PANEL_MARGIN;
+  return Math.round(Math.min(360, Math.max(140, available)));
 }
 
 function formatHistoryDate(value: string): string {
@@ -1107,6 +1631,35 @@ function IconCollapse() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6 12h12" />
+    </svg>
+  );
+}
+
+function IconMinus() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 12h10" />
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 7v10" />
+      <path d="M7 12h10" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 8.5h8" />
+      <path d="M10 8.5V6.8c0-.7.5-1.2 1.2-1.2h1.6c.7 0 1.2.5 1.2 1.2v1.7" />
+      <path d="M9 10.5l.5 7.1c.1.8.6 1.3 1.4 1.3h2.2c.8 0 1.3-.5 1.4-1.3l.5-7.1" />
+      <path d="M11.2 12.4v4" />
+      <path d="M12.8 12.4v4" />
     </svg>
   );
 }

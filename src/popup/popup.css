@@ -357,7 +357,7 @@ button.signal-card {
   min-width: 0;
   min-height: 38px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.055);
   color: var(--soft);
   font-size: 11px;
@@ -416,6 +416,125 @@ button.signal-card {
   margin-bottom: 10px;
 }
 
+.history-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.history-visual-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  min-height: 72px;
+  max-height: 190px;
+  aspect-ratio: var(--zpc-history-image-ratio, 1 / 1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11);
+  outline: none;
+}
+
+.history-visual-card:hover,
+.history-visual-card:focus {
+  border-color: var(--line-hot);
+}
+
+.history-visual-card:focus {
+  box-shadow:
+    0 0 0 3px rgba(130, 184, 155, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.history-visual-card__media,
+.history-visual-card__media img,
+.history-visual-card__placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.history-visual-card__media {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(130, 184, 155, 0.12), rgba(255, 255, 255, 0.035)),
+    rgba(130, 184, 155, 0.055);
+}
+
+.history-visual-card__media img {
+  display: block;
+  object-fit: contain;
+}
+
+.history-visual-card__placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(130, 184, 155, 0.13), rgba(255, 255, 255, 0.035)),
+    rgba(130, 184, 155, 0.06);
+  color: rgba(210, 222, 213, 0.72);
+}
+
+.history-visual-card__placeholder span {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.history-visual-card__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 7px;
+  background:
+    linear-gradient(180deg, rgba(6, 7, 9, 0.12), rgba(6, 7, 9, 0.78) 42%, rgba(6, 7, 9, 0.94));
+  opacity: 0;
+  transform: translateY(5px);
+  transition:
+    opacity 180ms var(--ease),
+    transform 180ms var(--ease);
+  pointer-events: none;
+}
+
+.history-visual-card:hover .history-visual-card__overlay,
+.history-visual-card:focus .history-visual-card__overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.history-visual-card__overlay strong,
+.history-visual-card__overlay p {
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.history-visual-card__overlay strong {
+  display: -webkit-box;
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 900;
+  line-height: 1.18;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.history-visual-card__overlay p {
+  display: -webkit-box;
+  color: rgba(210, 222, 213, 0.86);
+  font-size: 9.5px;
+  line-height: 1.22;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .quick-grid button,
 .storage-note button,
 .history-preview-head button,
@@ -467,9 +586,49 @@ button.signal-card {
 }
 
 .history-item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
   min-width: 0;
   overflow: hidden;
   padding: 10px;
+}
+
+.history-item__media {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 72px;
+  max-height: 210px;
+  aspect-ratio: var(--zpc-history-image-ratio, 1 / 1);
+  overflow: hidden;
+  border: 1px solid rgba(130, 184, 155, 0.2);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(130, 184, 155, 0.12), rgba(255, 255, 255, 0.035)),
+    rgba(130, 184, 155, 0.055);
+}
+
+.history-item__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.history-item__placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(210, 222, 213, 0.74);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.history-item__body {
+  min-width: 0;
 }
 
 .history-item__top {
@@ -598,6 +757,16 @@ button.signal-card {
   padding: 0 8px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  .history-item {
+    grid-template-columns: 1fr;
+  }
+
+  .history-item__media {
+    aspect-ratio: var(--zpc-history-image-ratio, 4 / 3);
+  }
 }
 
 .empty-state {

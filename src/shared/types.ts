@@ -44,6 +44,7 @@ export interface HistoryEntry {
   id: string;
   createdAt: string;
   imageUrl?: string;
+  thumbnailUrl?: string;
   pageUrl?: string;
   title: string;
   favorite: boolean;

@@ -3,9 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { cancelActiveSelectionOverlay, cropVisibleScreenshot, startImagePicker, startSelectionOverlay } from './selectionOverlay';
 import { Panel, type PanelState } from './panel';
 import panelCss from './panel.css';
-import { STORAGE_KEYS } from '../shared/defaults';
+import { HISTORY_LIMIT, STORAGE_KEYS } from '../shared/defaults';
 import { fileToDataUrl, isImageFile } from '../shared/imageData';
-import { deleteHistoryEntry, getHistory, getSettings, saveSettings } from '../shared/storage';
+import { clearHistory, deleteHistoryEntry, getHistory, getSettings, saveSettings } from '../shared/storage';
 import type { AnalysisPhase, GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, RuntimeResponse } from '../shared/types';
 
 const INSTANCE_KEY = '__zhijuanPromptCardInstanceId__';
@@ -27,6 +27,7 @@ const canceledAnalysisIds = new Set<string>();
 
 ensurePanelRoot();
 void loadSettingsIntoUi();
+void refreshHistory();
 installSettingsListener();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -73,7 +74,7 @@ function installSettingsListener(): void {
     if (changes[STORAGE_KEYS.history]) {
       historyEntries = Array.isArray(changes[STORAGE_KEYS.history].newValue) ? changes[STORAGE_KEYS.history].newValue as HistoryEntry[] : [];
       recoverSuccessfulHistory(historyEntries);
-      if (panelState.view === 'history') render();
+      if (panelState.open) render();
     }
   });
 }
@@ -96,10 +97,12 @@ async function handleMessage(message: any): Promise<unknown> {
       setPanelState({ open: false, loading: false, error: undefined, notice: undefined, picking: undefined, phase: undefined, startedAt: undefined });
       return true;
     case 'ANALYSIS_STARTED':
+      if (shouldIgnoreAnalysisMessage(message.payload.entry?.id)) return true;
       lastTarget = message.payload.target;
       activeAnalysisId = message.payload.entry?.id;
       if (activeAnalysisId) canceledAnalysisIds.delete(activeAnalysisId);
       floatingHiddenByUser = false;
+      rememberHistoryEntry(message.payload.entry);
       setPanelState({ open: true, view: 'main', loading: true, error: undefined, entry: message.payload.entry, target: lastTarget, phase: 'preparing_image', startedAt: panelState.startedAt || Date.now() });
       return true;
     case 'ANALYSIS_PHASE':
@@ -111,6 +114,7 @@ async function handleMessage(message: any): Promise<unknown> {
       if (shouldIgnoreAnalysisMessage(message.payload.entry?.id)) return true;
       lastTarget = message.payload.target;
       activeAnalysisId = undefined;
+      rememberHistoryEntry(message.payload.entry);
       applySuccessfulEntry(message.payload.entry, lastTarget);
       return true;
     case 'ANALYSIS_ERROR':
@@ -118,11 +122,13 @@ async function handleMessage(message: any): Promise<unknown> {
       lastTarget = message.payload.target;
       if (message.payload.entry?.id === activeAnalysisId) activeAnalysisId = undefined;
       if (isCurrentSuccessfulEntry(message.payload.entry?.id)) return true;
+      rememberHistoryEntry(message.payload.entry);
       setPanelState({ open: !floatingHiddenByUser, loading: false, error: message.payload.error, entry: panelState.entry?.analysis ? panelState.entry : message.payload.entry, target: lastTarget, phase: undefined, startedAt: undefined });
       return true;
     case 'ANALYSIS_CANCELED':
       if (message.payload.entry?.id && canceledAnalysisIds.has(message.payload.entry.id) && activeAnalysisId !== message.payload.entry.id) return true;
       lastTarget = message.payload.target;
+      rememberHistoryEntry(message.payload.entry);
       applyCanceledEntry(message.payload.entry, lastTarget);
       return true;
     case 'START_SELECTION':
@@ -243,6 +249,7 @@ function render(): void {
       onRefreshHistory={() => void refreshHistory()}
       onSelectHistoryEntry={(entry) => selectHistoryEntry(entry)}
       onDeleteHistoryEntry={(id) => void deleteHistory(id)}
+      onClearHistory={() => void clearAllHistory()}
       onOpenSettings={() => void openSettings()}
       onCopy={(text, label) => void copyText(text, label)}
       onRegenerate={() => void regenerate()}
@@ -406,6 +413,10 @@ async function openSettings(): Promise<void> {
 }
 
 async function openHistory(): Promise<void> {
+  if (panelState.loading) {
+    showNotice(interfaceLanguage === 'zh' ? '正在识别，先保留当前任务。' : 'Analysis is running. Keeping the current task visible.');
+    return;
+  }
   historyEntries = await getHistory();
   setPanelState({ open: true, view: 'history', notice: undefined, picking: undefined });
 }
@@ -415,12 +426,28 @@ async function refreshHistory(): Promise<void> {
   render();
 }
 
+function rememberHistoryEntry(entry: HistoryEntry | undefined): void {
+  if (!entry?.id) return;
+  historyEntries = [entry, ...historyEntries.filter((item) => item.id !== entry.id)].slice(0, HISTORY_LIMIT);
+}
+
 async function deleteHistory(id: string): Promise<void> {
   historyEntries = await deleteHistoryEntry(id);
   render();
 }
 
+async function clearAllHistory(): Promise<void> {
+  await clearHistory();
+  historyEntries = [];
+  showNotice(interfaceLanguage === 'zh' ? '历史已清空。' : 'History cleared.');
+  render();
+}
+
 function selectHistoryEntry(entry: HistoryEntry): void {
+  if (panelState.loading) {
+    showNotice(interfaceLanguage === 'zh' ? '正在识别，先保留当前任务。' : 'Analysis is running. Keeping the current task visible.');
+    return;
+  }
   lastTarget = historyEntryToTarget(entry);
   setPanelState({ open: true, view: 'main', loading: false, error: entry.status === 'failed' ? entry.error : undefined, entry, target: lastTarget, picking: undefined, phase: undefined, startedAt: undefined });
 }

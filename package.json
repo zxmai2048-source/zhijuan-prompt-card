@@ -1,6 +1,6 @@
 {
   "name": "zhijuan-prompt-card",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "check:storage": "tsx scripts/check-storage.ts",
     "check:url": "tsx scripts/check-url.ts",
-    "e2e:bilibili": "node scripts/e2e-bilibili-extension.mjs"
+    "e2e:bilibili": "node scripts/e2e-bilibili-extension.mjs",
+    "smoke:history": "node scripts/smoke-visual-history.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

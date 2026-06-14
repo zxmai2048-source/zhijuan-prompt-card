@@ -1,6 +1,6 @@
 import { analyzeImageWithApi, isAbortError } from '../shared/apiClient';
 import { GENERATOR_SITES, getGeneratorSite } from '../shared/generators';
-import { resizeDataUrl, urlToDataUrl } from '../shared/imageData';
+import { createThumbnailDataUrl, resizeDataUrl, urlToDataUrl } from '../shared/imageData';
 import { REVERSE_PROMPT_SYSTEM } from '../shared/reversePrompt';
 import {
   addHistoryEntry,
@@ -184,6 +184,15 @@ async function runAnalysisForTab(tabId: number | undefined, target: ImageTarget)
     throwIfAborted(controller.signal);
     if (tabId) await notifyAnalysisPhase(tabId, runningEntry.id, 'preparing_image', target);
     const imageDataUrl = await prepareImageDataUrl(target, tabId, controller.signal);
+    const thumbnailUrl = await createHistoryThumbnail(imageDataUrl, controller.signal);
+    throwIfAborted(controller.signal);
+    if (thumbnailUrl) {
+      await updateHistoryEntry(runningEntry.id, { thumbnailUrl });
+      throwIfAborted(controller.signal);
+      const active = activeAnalyses.get(runningEntry.id);
+      if (active) active.entry = { ...active.entry, thumbnailUrl };
+      if (tabId) await notifyTab(tabId, { type: 'ANALYSIS_STARTED', payload: { entry: { ...runningEntry, thumbnailUrl }, target } });
+    }
     throwIfAborted(controller.signal);
     if (tabId) await notifyAnalysisPhase(tabId, runningEntry.id, 'requesting_model', target);
     const analysis = await analyzeImageWithApi({
@@ -215,6 +224,14 @@ async function runAnalysisForTab(tabId: number | undefined, target: ImageTarget)
     throw error;
   } finally {
     activeAnalyses.delete(runningEntry.id);
+  }
+}
+
+async function createHistoryThumbnail(imageDataUrl: string, signal?: AbortSignal): Promise<string | undefined> {
+  try {
+    return await createThumbnailDataUrl(imageDataUrl, 520, 0.84, signal);
+  } catch {
+    return undefined;
   }
 }
 
