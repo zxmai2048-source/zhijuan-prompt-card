@@ -234,9 +234,17 @@ Settings:
 
 ## Recommended Setup: BridgeDeck / 推荐配置：BridgeDeck
 
-BridgeDeck is an optional local OpenAI-compatible bridge adapter maintained separately. It is not bundled with Zhijuan Prompt Card and is not required.
+BridgeDeck is an optional local OpenAI-compatible bridge adapter maintained separately: [github.com/papperrollinggery/bridgedeck](https://github.com/papperrollinggery/bridgedeck).
 
-BridgeDeck 是一个可选的本地 OpenAI-compatible bridge adapter，独立维护，不随 Zhijuan Prompt Card 打包，也不是必需项。
+It is useful when you want Zhijuan Prompt Card to call a local bridge endpoint instead of wiring every model provider directly into the extension. BridgeDeck can expose a `/v1` API shape that the extension can use as its vision endpoint, while the extension itself stays local-first and provider-neutral.
+
+BridgeDeck is not bundled with Zhijuan Prompt Card and is not required.
+
+BridgeDeck 是一个可选的本地 OpenAI-compatible bridge adapter，独立维护：[github.com/papperrollinggery/bridgedeck](https://github.com/papperrollinggery/bridgedeck)。
+
+当你希望 Zhijuan Prompt Card 调用本地 bridge endpoint，而不是把每个模型服务商都直接接进扩展时，BridgeDeck 更适合作为推荐配置。它可以提供扩展可用的 `/v1` 视觉端点形态，同时让扩展本身保持本地优先和 provider-neutral。
+
+BridgeDeck 不随 Zhijuan Prompt Card 打包，也不是必需项。
 
 Example local configuration:
 
