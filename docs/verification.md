@@ -19,6 +19,7 @@
 
 ## Build
 
+- Prompt optimization goal: pass, `npm run check:prompt-goal`
 - Typecheck: pass, `npm run typecheck`
 - Build: pass, `npm run build`
 - Dev checks: pass, `npm run check:storage && npm run check:url`
