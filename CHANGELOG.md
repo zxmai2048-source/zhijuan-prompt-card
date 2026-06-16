@@ -11,6 +11,7 @@
 - Better preserves ambiguous material, pattern, and surface details instead of overfitting them into generic categories.
 - Keeps language prompt tabs focused on copy-ready prompt text instead of mixing in analysis text.
 - Makes quality and negative-prompt guidance more conditional to reduce over-polished, AI-flavored, or generic outputs.
+- Fixes OpenAI / BridgeDeck / compatible endpoint request options by using `max_completion_tokens` for GPT-5, o-series, and reasoning models, while keeping `max_tokens` and `temperature` for older compatible models.
 
 **中文**
 
@@ -21,6 +22,7 @@
 - 更好保留复杂材质、图案和表面关系，减少被误写成通用类别。
 - 语言提示词标签页只保留可直接复制使用的提示词，不再混入分析文本。
 - 质量和反向词约束改为更动态，减少过度精修、AI 味和泛化输出。
+- 修复 OpenAI / BridgeDeck / 兼容端点请求参数：GPT-5、o-series 和 reasoning 模型使用 `max_completion_tokens`，旧兼容模型继续使用 `max_tokens` 与 `temperature`。
 
 ## 0.3.0
 

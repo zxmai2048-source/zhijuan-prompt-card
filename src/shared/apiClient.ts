@@ -6,10 +6,24 @@ const API_TIMEOUT_MS = 180_000;
 const API_TIMEOUT_SECONDS = API_TIMEOUT_MS / 1_000;
 const API_RETRY_DELAYS_MS = [800, 1_800];
 const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
+const ANALYSIS_TEMPERATURE = 0.18;
+const ANALYSIS_MAX_OUTPUT_TOKENS = 12_288;
+const ANALYSIS_REASONING_EFFORT: ReasoningEffort = 'low';
 
 interface OpenAiContentPart {
   type?: string;
   text?: string;
+}
+
+type UnsupportedParameterName = 'max_tokens' | 'temperature' | 'reasoning_effort';
+export type ReasoningEffort = 'low' | 'medium' | 'high';
+
+export interface AnalysisRequestOptions {
+  model: string;
+  temperature?: number;
+  max_tokens?: number;
+  max_completion_tokens?: number;
+  reasoning_effort?: ReasoningEffort;
 }
 
 export function normalizeChatCompletionsUrl(baseUrl: string): string {
@@ -17,6 +31,45 @@ export function normalizeChatCompletionsUrl(baseUrl: string): string {
   if (!trimmed) throw new Error('Base URL is required.');
   if (trimmed.endsWith('/chat/completions')) return trimmed;
   return `${trimmed}/chat/completions`;
+}
+
+export function buildAnalysisRequestOptions(model: string): AnalysisRequestOptions {
+  const trimmedModel = model.trim();
+  if (usesReasoningCompletionOptions(trimmedModel)) {
+    return {
+      model: trimmedModel,
+      max_completion_tokens: ANALYSIS_MAX_OUTPUT_TOKENS,
+      reasoning_effort: ANALYSIS_REASONING_EFFORT
+    };
+  }
+
+  return {
+    model: trimmedModel,
+    temperature: ANALYSIS_TEMPERATURE,
+    max_tokens: ANALYSIS_MAX_OUTPUT_TOKENS
+  };
+}
+
+export function applyUnsupportedParameterFallback(options: AnalysisRequestOptions, message: string): boolean {
+  const parameter = extractUnsupportedParameter(message);
+  if (!parameter) return false;
+
+  if (parameter === 'max_tokens') {
+    if (options.max_tokens === undefined) return false;
+    options.max_completion_tokens ??= options.max_tokens;
+    delete options.max_tokens;
+    return true;
+  }
+
+  if (parameter === 'temperature') {
+    if (options.temperature === undefined) return false;
+    delete options.temperature;
+    return true;
+  }
+
+  if (options.reasoning_effort === undefined) return false;
+  delete options.reasoning_effort;
+  return true;
 }
 
 export async function analyzeImageWithApi(input: {
@@ -28,33 +81,23 @@ export async function analyzeImageWithApi(input: {
   throwIfAborted(input.signal);
   const { mime, base64 } = dataUrlToMimeAndBase64(input.imageDataUrl);
   const url = normalizeChatCompletionsUrl(input.settings.baseUrl);
-  const requestBody = JSON.stringify({
-    model: input.settings.model,
-    temperature: 0.18,
-    max_tokens: 12288,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: input.promptText },
-          { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } }
-        ]
-      }
-    ]
-  });
+  const requestOptions = buildAnalysisRequestOptions(input.settings.model);
 
-  for (let attempt = 0; attempt <= API_RETRY_DELAYS_MS.length; attempt += 1) {
+  let retryDelayIndex = 0;
+  while (true) {
     let result: ApiResponsePayload;
     try {
       throwIfAborted(input.signal);
+      const requestBody = buildAnalysisRequestBody(requestOptions, input.promptText, mime, base64);
       result = await postAnalysisRequest(url, input.settings.apiKey, requestBody, input.signal);
     } catch (error) {
       if (isAbortError(error)) {
         if (input.signal?.aborted) throw error;
         throw new Error(`API 请求超过 ${API_TIMEOUT_SECONDS} 秒未返回。`);
       }
-      if (attempt < API_RETRY_DELAYS_MS.length && isRetryableTransportError(error)) {
-        await delay(API_RETRY_DELAYS_MS[attempt], input.signal);
+      if (retryDelayIndex < API_RETRY_DELAYS_MS.length && isRetryableTransportError(error)) {
+        await delay(API_RETRY_DELAYS_MS[retryDelayIndex], input.signal);
+        retryDelayIndex += 1;
         continue;
       }
       throw error;
@@ -65,14 +108,32 @@ export async function analyzeImageWithApi(input: {
     }
 
     const message = extractApiError(result.payload) || `API request failed: ${result.response.status}`;
-    if (attempt < API_RETRY_DELAYS_MS.length && isRetryableApiFailure(result.response.status, message)) {
-      await delay(API_RETRY_DELAYS_MS[attempt], input.signal);
+    if (applyUnsupportedParameterFallback(requestOptions, message)) {
+      continue;
+    }
+
+    if (retryDelayIndex < API_RETRY_DELAYS_MS.length && isRetryableApiFailure(result.response.status, message)) {
+      await delay(API_RETRY_DELAYS_MS[retryDelayIndex], input.signal);
+      retryDelayIndex += 1;
       continue;
     }
     throw new Error(normalizeApiErrorMessage(message));
   }
+}
 
-  throw new Error('API request failed.');
+function buildAnalysisRequestBody(options: AnalysisRequestOptions, promptText: string, mime: string, base64: string): string {
+  return JSON.stringify({
+    ...options,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: promptText },
+          { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } }
+        ]
+      }
+    ]
+  });
 }
 
 interface ApiResponsePayload {
@@ -164,6 +225,25 @@ export function normalizeApiErrorMessage(message: string): string {
 
 function isProxyServiceUnavailable(message: string): boolean {
   return /ProxyError:\s*503\s+Service Unavailable/i.test(message) || /503\s+Service Unavailable/i.test(message);
+}
+
+function usesReasoningCompletionOptions(model: string): boolean {
+  const normalized = model.trim().toLowerCase();
+  const modelId = normalized.split(/[/:]/).filter(Boolean).at(-1) || normalized;
+  return /^gpt-5(?:$|[-_.])/.test(modelId) || /^o\d+(?:$|[-_.])/.test(modelId) || /(?:^|[-_.])reasoning(?:$|[-_.])/.test(modelId);
+}
+
+function extractUnsupportedParameter(message: string): UnsupportedParameterName | undefined {
+  if (!/(unsupported|not supported|does not support)/i.test(message)) return undefined;
+  if (mentionsParameter(message, 'max_tokens')) return 'max_tokens';
+  if (mentionsParameter(message, 'temperature')) return 'temperature';
+  if (mentionsParameter(message, 'reasoning_effort')) return 'reasoning_effort';
+  return undefined;
+}
+
+function mentionsParameter(message: string, parameter: UnsupportedParameterName): boolean {
+  if (parameter === 'reasoning_effort') return /reasoning[\s_-]?effort/i.test(message);
+  return message.toLowerCase().includes(parameter);
 }
 
 function errorToMessage(error: unknown): string {

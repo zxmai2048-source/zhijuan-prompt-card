@@ -269,6 +269,18 @@ The endpoint must support:
 - 视觉理解能力。
 - 返回符合预期 schema 的 JSON 文本。
 
+Request parameter compatibility:
+
+- GPT-5, o-series, and reasoning model names use `max_completion_tokens` with `reasoning_effort: low`.
+- Older models and ordinary compatible endpoints keep `max_tokens` and `temperature`.
+- If an endpoint rejects `max_tokens`, `temperature`, or `reasoning_effort` as unsupported, the extension retries once with the safer compatible option.
+
+请求参数兼容：
+
+- GPT-5、o-series 和 reasoning 模型名使用 `max_completion_tokens`，并设置 `reasoning_effort: low`。
+- 旧模型和普通兼容端点保留 `max_tokens` 与 `temperature`。
+- 如果端点返回 `max_tokens`、`temperature` 或 `reasoning_effort` 不支持，扩展会用更兼容的参数安全重试一次。
+
 Settings:
 
 - Base URL: your endpoint base URL.
