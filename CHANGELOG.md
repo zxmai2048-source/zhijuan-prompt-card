@@ -6,12 +6,16 @@
 
 - Rebalanced image-to-prompt reconstruction constraints so the model observes first and applies only relevant prompt controls.
 - Improves real-person reconstruction fidelity for visible facial structure, skin tone, skin texture, hair, pose, body proportions, and casual photo context.
+- Improves consistency between natural prompts and JSON output so important visible facts are less likely to be dropped.
+- Better preserves ambiguous material, pattern, and surface details instead of overfitting them into generic categories.
 - Makes camera, style, quality, and negative-prompt guidance more conditional to reduce over-polished or generic outputs.
 
 **中文**
 
 - 重新平衡图片反推提示词约束，让模型先观察图像，再按需启用复刻控制。
 - 改进真人图片的脸型、肤色、皮肤质感、发型、姿势、身体比例和生活照场景保真。
+- 改进普通提示词和 JSON 输出的一致性，减少关键可见信息丢失。
+- 更好保留复杂材质、图案和表面关系，减少被误写成通用类别。
 - 摄影、风格、质量和反向词约束改为更动态，减少过度精修和泛化输出。
 
 ## 0.3.0

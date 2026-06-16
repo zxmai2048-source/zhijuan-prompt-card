@@ -51,63 +51,52 @@ const realPersonFidelityClause =
 const contractChecks = [
   ['task is reconstruction, not captioning', 'visual reconstruction prompt writer'],
   ['explicitly blocks captions', 'Do not write a caption'],
-  ['faithful reconstruction comes first', 'First identify what is actually visible'],
-  ['rules are guardrails, not checklist', 'Rules are guardrails, not a checklist'],
+  ['observe before writing', 'First observe the image, then write'],
+  ['rules are writing standards, not fixed content', 'These rules describe how to write clearly'],
+  ['blocks fixed templates', 'not a fixed template'],
+  ['blocks forced categories', 'Do not force categories'],
+  ['requires shared fact set across prompt and JSON', 'Natural-language prompts and json_prompt must be built from the same observed facts'],
+  ['requires JSON to keep prompt facts', 'it should also appear in the appropriate json_prompt field'],
   ['uses visible evidence only', 'Use only visible evidence'],
-  ['does not flatten recognizable anchors', 'Do not flatten recognizable anchors'],
-  ['allows recognizable people and characters', 'known person, fictional/anime/game/comic/movie character'],
-  ['allows source work and story recognition', 'source work, story/franchise'],
+  ['allows strong visual recognition', 'strong visual recognition'],
+  ['allows recognizable people and characters', 'known public person, fictional/anime/game/comic/movie character'],
+  ['allows source work and event recognition', 'source work, event, landmark'],
   ['uses uncertainty language for plausible recognition', 'appears to be'],
-  ['does not delete useful recognition clues', 'deleting useful recognition clues'],
+  ['uncertain details keep useful evidence', 'use cautious wording instead of deleting the clue'],
   ['keeps output JSON-only', 'Return valid JSON only'],
   ['preserves exact top-level shape', 'Keep exactly this top-level shape'],
   ['sets recreation prompt as primary generation prompt', 'recreation_prompt is the primary generation prompt'],
   ['requires generator-neutral prompts', 'Do not include generator-specific syntax'],
-  ['requires image-specific negative prompts', 'negative_prompt must be image-specific'],
-  ['limits negative prompt stacking', 'normally 8-18 items'],
-  ['requires selective image modes', 'Do not use every module for every image'],
-  ['requires real-person appearance fidelity', 'face shape, facial proportions, visible skin tone and undertone'],
-  ['allows cautious ancestry presentation', 'ethnic/ancestry presentation'],
-  ['allows strong public-person recognition', 'real public person is strongly recognizable'],
-  ['preserves casual phone photo authenticity', 'Do not convert them into fashion editorials'],
+  ['requires image-specific negative prompts', 'negative_prompt is image-specific'],
+  ['limits negative prompt stacking', 'normally 8-24 items'],
+  ['requires real-person appearance fidelity', 'face shape, facial proportions, skin tone depth and undertone'],
+  ['allows cautious ancestry presentation', 'Ethnic or ancestry presentation is not a verified identity'],
+  ['does not invent private names', 'For unknown private people, do not invent names'],
+  ['requires surface relationship evidence', 'Describe surface relationships as observed'],
+  ['requires body/object pattern surface reading', 'whether edges or seams are visible'],
+  ['blocks invented conventional surface categories', 'Do not collapse ambiguous markings into a conventional object'],
+  ['requires missing boundary evidence', 'missing boundary evidence'],
   ['requires style index definition', 'style_index means visual stylization intensity'],
-  ['requires conditional camera cue discipline', 'only when they are visible or genuinely useful for reconstruction'],
-  ['blocks forced cinema jargon', 'Do not force cinema-camera'],
-  ['requires material and texture locks', 'Describe the most important surface behavior'],
-  ['requires approximate hex color palette', 'approximate standard HEX colors plus color name and visual role'],
-  ['blocks bare generic colors', 'do not output bare generic names'],
-  ['preserves original text language and script', 'preserve the original language and script'],
-  ['blocks translating visible text', 'Do not translate, romanize, paraphrase, replace, invent, or reorder visible text'],
-  ['requires typography hierarchy and layout', 'state text position, scale, hierarchy, alignment, spacing'],
-  ['preserves screenshots as screenshots', 'describe them as screenshots, not redesigned app concepts'],
-  ['defaults thumbnail inputs to clean readable reconstruction', 'Reconstruct a clean readable version by default'],
-  ['blocks preserving thumbnail blur', 'do not preserve thumbnail blur, compression artifacts, or accidental low-resolution input'],
-  ['prevents clean website redesign drift', 'Do not replace the visible UI with a polished redesign or different website'],
-  ['adds adaptive fidelity guidance', 'Add adaptive fidelity and quality guidance'],
-  ['requires real-person quality guidance', 'preserve natural skin texture'],
-  ['allows clean graphic quality clause', 'ordinary clean graphics'],
+  ['requires optional camera cue discipline', 'Camera and film vocabulary is optional'],
+  ['blocks false metadata', 'Do not claim factual metadata unless visible'],
+  ['requires material and texture language', 'visible materials, and surface behavior'],
+  ['requires approximate hex color palette', 'approximate HEX colors with color name and visual role'],
+  ['blocks bare generic colors', 'Do not output bare generic color names'],
+  ['preserves original text language and script', 'Preserve original language and script'],
+  ['blocks translating visible text', 'do not translate, romanize, paraphrase, replace, invent, or reorder visible text'],
+  ['requires typography hierarchy and layout', 'position, size hierarchy, alignment'],
+  ['preserves screenshots as captured objects', 'preserve the image as that object/capture'],
+  ['defaults thumbnail inputs to clean readable reconstruction', 'clean readable version unless low fidelity is clearly intentional style'],
+  ['requires adaptive clarity guidance', 'Add adaptive clarity/fidelity guidance'],
   ['protects source imperfections and texture', 'mirror marks, bathroom glass spots'],
-  ['requires ordered recreation prompt', 'Use this order for recreation_prompt'],
-  ['requires real-person drift blockers', 'changed skin tone, different facial structure'],
-  ['requires exact subject/object count where clear', 'Count people and repeated objects exactly'],
-  ['locks spatial relationships when important', 'Lock left/right/front/back and foreground/midground/background'],
-  ['requires distinctive composition details', 'If composition is distinctive'],
-  ['requires optical motion detail', 'If motion or optical effects are visible'],
-  ['prefers concrete geometry over generic quality words', 'Prefer concrete nouns, geometry, visible relationships, and material behavior'],
-  ['requires semicolon-style structured JSON fields', 'short semicolon-separated clauses']
-];
-
-const reconstructionPriority = [
-  'source fidelity and strong visible recognition before template completion',
-  'recognizable person, character, work, story, scene, location, or visual-culture anchor when supported',
-  'visible human appearance, face/body proportions, skin tone, hair, expression, and pose when people are present',
-  'visible text, original language/script, typography hierarchy, and UI/layout positions',
-  'aspect ratio, crop, subject scale, and negative space',
-  'subject count and relative positions',
-  'camera geometry, lens feel, viewpoint, and perspective only as needed for reconstruction',
-  'action, pose, gaze, motion blur, and focus plane',
-  'foreground, midground, background anchors, props, and spatial depth',
-  'lighting, palette, material finish, texture, medium, style family, post-processing, and style_index'
+  ['protects intentional paint strokes', 'paint strokes'],
+  ['allows longer complete recreation prompts', 'usually 120-320 English words'],
+  ['prevents JSON compression loss', 'do not remove load-bearing facts just to make them short'],
+  ['requires real-person drift blockers', 'changed face/body/skin tone'],
+  ['requires exact subject/object count where clear', 'Count people and repeated objects when clear'],
+  ['locks spatial relationships when important', 'left/right/front/back, foreground/midground/background'],
+  ['prefers concrete relationships over generic quality words', 'Prefer concrete nouns, exact relationships'],
+  ['requires semicolon-style structured JSON fields', 'compact semicolon-separated clauses']
 ];
 
 const simulatedCases = [
@@ -277,6 +266,65 @@ const simulatedCases = [
     ]
   },
   {
+    id: 'korean_soccer_body_paint_surface',
+    recreation:
+      `Vertical stadium fan portrait of one young adult East Asian-presenting woman on a football pitch at night, platinum-silver wavy hair, soft oval face, natural glossy skin with visible sweat, direct calm gaze, holding a soccer ball under her left arm while her right hand lifts a strand of hair. The white torso-and-hip surface is covered with Korean flag imagery and rough red, blue, and black brush-painted strokes; describe it by visible evidence as body-painted or a painted skin-tight covering, because the graphics follow the chest, waist, abdomen, and hip contours with wet shine and no clearly visible separate jersey hem, waistband, shorts seam, fabric fold, or loose edge. Korean flags, packed stadium crowd, green turf, white field line, large floodlights, shallow background blur. Realistic smartphone or event-photo reconstruction, style_index 28/100, bright stadium lighting, preserve paint strokes, body contours, ball paint, national-color palette, and clean clear subject without oily plastic skin or over-sharpened artifacts.`,
+    core:
+      'Korean stadium fan portrait, silver-haired woman holding a soccer ball, Korean flag body-paint or painted skin-tight surface, floodlit football pitch.',
+    negative:
+      'separate crop-top jersey, separate shorts, visible waistband, fabric hem, clean printed uniform, missing brush paint, wrong national colors, missing soccer ball, changed skin tone, different facial structure, altered body proportions, beauty-polished substitute face, plastic skin, studio fashion shoot, empty stadium, wrong crop, extra people',
+    jsonDetails:
+      'platinum-silver wavy hair; soft oval face; glossy natural skin with sweat; Korean flag imagery and rough red blue black brush-painted strokes across the torso and hip surface; appears body-painted or painted skin-tight covering based on body-contour following, wet shine, no clear jersey hem, no waistband, no shorts seam, no loose fabric edge; soccer ball under left arm with matching paint marks',
+    requiredAnchors: [
+      'Vertical stadium fan portrait',
+      'one young adult East Asian-presenting woman',
+      'platinum-silver wavy hair',
+      'natural glossy skin with visible sweat',
+      'holding a soccer ball under her left arm',
+      'Korean flag imagery',
+      'rough red, blue, and black brush-painted strokes',
+      'body-painted or a painted skin-tight covering',
+      'graphics follow the chest, waist, abdomen, and hip contours',
+      'no clearly visible separate jersey hem',
+      'waistband',
+      'shorts seam',
+      'fabric fold',
+      'Korean flags',
+      'packed stadium crowd',
+      'large floodlights',
+      'style_index 28/100',
+      'preserve paint strokes',
+      'without oily plastic skin'
+    ],
+    requiredJsonAnchors: [
+      'brush-painted strokes',
+      'appears body-painted',
+      'painted skin-tight covering',
+      'body-contour following',
+      'no clear jersey hem',
+      'no waistband',
+      'no shorts seam',
+      'soccer ball'
+    ],
+    requiredNegativeAnchors: [
+      'separate crop-top jersey',
+      'separate shorts',
+      'visible waistband',
+      'fabric hem',
+      'clean printed uniform',
+      'missing brush paint',
+      'wrong national colors',
+      'missing soccer ball',
+      'changed skin tone',
+      'different facial structure',
+      'altered body proportions',
+      'beauty-polished substitute face',
+      'plastic skin',
+      'empty stadium',
+      'wrong crop'
+    ]
+  },
+  {
     id: 'bathroom_mirror_selfie_real_people',
     recreation:
       `Square casual bathroom mirror selfie of two adult women standing side by side in front of a sink, both with dark messy high buns, warm tan skin tones with natural texture and visible undertones, East Asian-presenting or mixed-Asian-presenting facial features when supported by the image, oval-to-heart face shapes, dark eyes, soft makeup, slim athletic body proportions. The left woman holds a smartphone at chest height, wearing a white knotted crop T-shirt over pale pink bikini bottoms with a navel piercing; the right woman brushes her teeth, wearing an oversized white T-shirt lifted at the waist and leopard bikini bottom. Cream tile bathroom, black door on the left, white shower curtain on the right, cluttered sink counter and mirror specks preserved. Smartphone mirror-selfie realism, style_index 12/100, warm indoor bathroom light. ${realPersonFidelityClause}.`,
@@ -388,12 +436,8 @@ for (const [label, needle] of contractChecks) {
   assert(systemPrompt.includes(needle), `contract check failed: ${label}`);
 }
 
-for (const priority of reconstructionPriority) {
-  assert(systemPrompt.includes(priority), `reconstruction priority missing: ${priority}`);
-}
-
 assert(systemPrompt.length >= 5500, 'system prompt is unexpectedly short for the reconstruction contract.');
-assert(systemPrompt.length <= 13000, 'system prompt is unexpectedly long; keep the runtime prompt compact enough for API use.');
+assert(systemPrompt.length <= 11000, 'system prompt is unexpectedly long; keep the runtime prompt compact enough for API use.');
 
 for (const testCase of simulatedCases) {
   checkPromptSample(testCase);
@@ -407,7 +451,6 @@ if (failures.length) {
 
 console.log('prompt goal check passed');
 console.log(`- contract rules: ${contractChecks.length}`);
-console.log(`- reconstruction priorities: ${reconstructionPriority.length}`);
 console.log(`- simulated human cases: ${simulatedCases.length}`);
 
 function checkPromptSample(testCase) {
@@ -415,9 +458,9 @@ function checkPromptSample(testCase) {
   const coreWords = wordCount(testCase.core);
   const negativeItems = testCase.negative.split(',').map((item) => item.trim()).filter(Boolean);
 
-  assert(recreationWords >= 70 && recreationWords <= 190, `${testCase.id}: recreation_prompt should stay near 70-190 words plus adaptive quality guidance, got ${recreationWords}`);
-  assert(coreWords >= 18 && coreWords <= 40, `${testCase.id}: prompt_core should stay compressed, got ${coreWords}`);
-  assert(negativeItems.length >= 8 && negativeItems.length <= 18, `${testCase.id}: negative_prompt needs 8-18 image-specific drift blockers, got ${negativeItems.length}.`);
+  assert(recreationWords >= 70 && recreationWords <= 380, `${testCase.id}: recreation_prompt should be complete without becoming rambling, got ${recreationWords}`);
+  assert(coreWords >= 16 && coreWords <= 45, `${testCase.id}: prompt_core should stay compressed, got ${coreWords}`);
+  assert(negativeItems.length >= 8 && negativeItems.length <= 24, `${testCase.id}: negative_prompt needs 8-24 image-specific drift blockers, got ${negativeItems.length}.`);
   assert(!hasGeneratorSyntax(testCase.recreation), `${testCase.id}: recreation_prompt contains generator-specific syntax.`);
   assert(!hasGeneratorSyntax(testCase.core), `${testCase.id}: prompt_core contains generator-specific syntax.`);
   assert(!hasPromptLabels(testCase.recreation), `${testCase.id}: recreation_prompt contains section labels.`);
@@ -425,6 +468,10 @@ function checkPromptSample(testCase) {
 
   for (const anchor of testCase.requiredAnchors) {
     assert(includesInsensitive(testCase.recreation, anchor), `${testCase.id}: recreation_prompt missing anchor "${anchor}"`);
+  }
+  for (const anchor of testCase.requiredJsonAnchors || []) {
+    assert(testCase.jsonDetails, `${testCase.id}: requiredJsonAnchors were provided without jsonDetails.`);
+    assert(includesInsensitive(testCase.jsonDetails || '', anchor), `${testCase.id}: json_prompt sample missing load-bearing anchor "${anchor}"`);
   }
   for (const anchor of testCase.requiredNegativeAnchors) {
     assert(includesInsensitive(testCase.negative, anchor), `${testCase.id}: negative_prompt missing blocker "${anchor}"`);
