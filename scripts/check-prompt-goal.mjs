@@ -62,6 +62,8 @@ const contractChecks = [
   ['blocks reasoning in prompt fields', 'Prompt fields are generation instructions, not reasoning'],
   ['keeps uncertainty out of generation prompts', 'uncertainty wording in analysis/json fields'],
   ['requires deterministic visual instructions', 'write a deterministic visual instruction'],
+  ['blocks slash alternatives in generation prompts', 'slash alternatives'],
+  ['uses neutral deterministic nouns for uncertain materials', 'neutral noun'],
   ['uses visible evidence only', 'Use only visible evidence'],
   ['allows strong visual recognition', 'strong visual recognition'],
   ['allows recognizable people and characters', 'known public person, fictional/anime/game/comic/movie character'],
@@ -81,6 +83,8 @@ const contractChecks = [
   ['requires body/object pattern surface reading', 'whether edges or seams are visible'],
   ['blocks invented conventional surface categories', 'Do not collapse ambiguous markings into a conventional object'],
   ['requires missing boundary evidence', 'missing boundary evidence'],
+  ['requires regional surface description', 'Do not merge mixed surface evidence into one material'],
+  ['keeps bare skin and navel when visible', 'bare skin, navel, paint'],
   ['requires style index definition', 'style_index means visual stylization intensity'],
   ['requires optional camera cue discipline', 'Camera and film vocabulary is optional'],
   ['blocks false metadata', 'Do not claim factual metadata unless visible'],
@@ -108,7 +112,7 @@ const simulatedCases = [
   {
     id: 'orbital_anime_energy',
     recreation:
-      `Tatsumaki / Tornado of Terror from One Punch Man, one petite green-haired esper woman hovering high above Earth in a vertical 2:3 composition, oblique aerial viewpoint with the curved planet and soft cloud layers tilted beneath her; arms crossed, head lowered, hair streaming upward, fitted black long-sleeve dress with high collar, thigh slit, trailing scarf-like fabric, black heels. Soft atmospheric anime-CG hybrid, style_index 78/100, painterly diffuse finish, translucent teal psychic energy wisps and thin vertical light trails converging below her feet, restrained contrast, matte black fabric/soft leather surface. ${cleanQualityClause}`,
+      `Tatsumaki / Tornado of Terror from One Punch Man, one petite green-haired esper woman hovering high above Earth in a vertical 2:3 composition, oblique aerial viewpoint with the curved planet and soft cloud layers tilted beneath her; arms crossed, head lowered, hair streaming upward, fitted black long-sleeve dress with high collar, thigh slit, trailing scarf-like fabric, black heels. Soft atmospheric anime-CG hybrid, style_index 78/100, painterly diffuse finish, translucent teal psychic energy wisps and thin vertical light trails converging below her feet, restrained contrast, matte black fabric with soft leather-like surface. ${cleanQualityClause}`,
     core:
       'Tatsumaki from One Punch Man, green-haired esper hovering above tilted Earth, arms crossed, matte black dress, translucent teal energy trails, soft anime-CG style.',
     negative:
@@ -126,7 +130,7 @@ const simulatedCases = [
       'style_index 78/100',
       'painterly diffuse finish',
       'translucent teal psychic energy wisps',
-      'matte black fabric/soft leather surface',
+      'matte black fabric with soft leather-like surface',
       'vertical light trails',
       'converging below her feet',
       cleanQualityClause
@@ -273,24 +277,26 @@ const simulatedCases = [
   {
     id: 'korean_soccer_body_paint_surface',
     recreation:
-      `Vertical stadium fan portrait of one young adult East Asian-presenting woman on a football pitch at night, platinum-silver wavy hair, soft oval face, natural glossy skin with visible sweat, direct calm gaze, holding a soccer ball under her left arm while her right hand lifts a strand of hair. A seamless body-contour white painted skin-tight surface covers the torso and hip area, carrying Korean flag imagery and rough red, blue, and black brush-painted strokes across the chest, waist, abdomen, and upper thighs; keep wet shine, visible abdomen and navel, no separate jersey hem, no waistband, no shorts seam, no fabric fold, no loose garment edge. Korean flags, packed stadium crowd, green turf, white field line, large floodlights, shallow background blur. Realistic smartphone event-photo reconstruction, style_index 28/100, bright stadium lighting, preserve paint strokes, body contours, ball paint, national-color palette, and clean clear subject without oily plastic skin or over-sharpened artifacts.`,
+      `Vertical stadium fan portrait of one young adult East Asian-presenting woman on a football pitch at night, platinum-silver wavy hair, soft oval face, natural glossy skin with visible sweat, direct calm gaze, holding a soccer ball under her left arm while her right hand lifts a strand of hair. Upper chest has a tight white shoulder-strap top surface with Korean flag graphics, red-blue taegeuk circle, black trigram marks, a black-and-white shield tiger crest, and a small red-blue-white bow. Waist, exposed abdomen, navel, hips, and upper thighs show seamless body-contour white painted skin-tight surface with rough red, blue, and black brush-painted strokes following the body curves; keep wet shine, no separate jersey hem, no waistband, no shorts seam, no fabric fold, no loose garment edge. Korean flags, packed stadium crowd, green turf, white field line, large floodlights, shallow background blur. Realistic smartphone event-photo reconstruction, style_index 28/100, bright stadium lighting, preserve paint strokes, body contours, ball paint, national-color palette, and clean clear subject without oily plastic skin or over-sharpened artifacts.`,
     core:
-      'Korean stadium fan portrait, silver-haired woman holding a soccer ball, seamless Korean flag painted skin-tight surface, floodlit football pitch.',
+      'Korean stadium fan portrait, silver-haired woman holding a soccer ball, white strap top plus seamless Korean flag body-painted waist and hip surface, floodlit football pitch.',
     negative:
-      'separate crop-top jersey, separate shorts, visible waistband, fabric hem, clean printed uniform, missing brush paint, wrong national colors, missing soccer ball, changed skin tone, different facial structure, altered body proportions, beauty-polished substitute face, plastic skin, studio fashion shoot, empty stadium, wrong crop, extra people',
+      'single one-piece swimsuit, full printed bodysuit, separate crop-top jersey, separate shorts, visible waistband, fabric hem, clean printed uniform, missing exposed abdomen, missing navel, missing brush paint, wrong national colors, missing soccer ball, changed skin tone, different facial structure, altered body proportions, beauty-polished substitute face, plastic skin, empty stadium, wrong crop',
     jsonDetails:
-      'platinum-silver wavy hair; soft oval face; glossy natural skin with sweat; Korean flag imagery and rough red blue black brush-painted strokes across the torso and hip surface; appears body-painted or painted skin-tight covering based on body-contour following, wet shine, no clear jersey hem, no waistband, no shorts seam, no loose fabric edge; soccer ball under left arm with matching paint marks',
+      'platinum-silver wavy hair; soft oval face; glossy natural skin with sweat; upper chest has tight white strap top surface with Korean taegeuk circle, black trigrams, tiger crest and bow; waist, exposed abdomen, navel, hips and upper thighs show seamless body-contour painted white skin-tight surface with rough red blue black brush-painted strokes; no clear jersey hem, no waistband, no shorts seam, no loose fabric edge; soccer ball under left arm with matching paint marks',
     requiredAnchors: [
       'Vertical stadium fan portrait',
       'one young adult East Asian-presenting woman',
       'platinum-silver wavy hair',
       'natural glossy skin with visible sweat',
       'holding a soccer ball under her left arm',
+      'tight white shoulder-strap top surface',
+      'black-and-white shield tiger crest',
+      'small red-blue-white bow',
+      'Waist, exposed abdomen, navel, hips, and upper thighs',
       'seamless body-contour white painted skin-tight surface',
-      'Korean flag imagery',
+      'Korean flag graphics',
       'rough red, blue, and black brush-painted strokes',
-      'chest, waist, abdomen, and upper thighs',
-      'visible abdomen and navel',
       'no separate jersey hem',
       'waistband',
       'shorts seam',
@@ -305,20 +311,25 @@ const simulatedCases = [
     ],
     requiredJsonAnchors: [
       'brush-painted strokes',
-      'appears body-painted',
-      'painted skin-tight covering',
-      'body-contour following',
+      'upper chest has tight white strap top surface',
+      'exposed abdomen',
+      'navel',
+      'body-contour painted white skin-tight surface',
       'no clear jersey hem',
       'no waistband',
       'no shorts seam',
       'soccer ball'
     ],
     requiredNegativeAnchors: [
+      'single one-piece swimsuit',
+      'full printed bodysuit',
       'separate crop-top jersey',
       'separate shorts',
       'visible waistband',
       'fabric hem',
       'clean printed uniform',
+      'missing exposed abdomen',
+      'missing navel',
       'missing brush paint',
       'wrong national colors',
       'missing soccer ball',
@@ -339,7 +350,8 @@ const simulatedCases = [
       'possibly',
       'maybe',
       'therefore',
-      'should preserve'
+      'should preserve',
+      'one-piece athletic swimsuit'
     ]
   },
   {
@@ -454,7 +466,7 @@ for (const [label, needle] of contractChecks) {
 }
 
 assert(systemPrompt.length >= 5500, 'system prompt is unexpectedly short for the reconstruction contract.');
-assert(systemPrompt.length <= 11000, 'system prompt is unexpectedly long; keep the runtime prompt compact enough for API use.');
+assert(systemPrompt.length <= 12500, 'system prompt is unexpectedly long; keep the runtime prompt compact enough for API use.');
 assert(!panelSource.includes('analysis[tab].prompt}\\n\\n${analysis[tab].analysis'), 'language tab output must not concatenate prompt and analysis.');
 assert(panelSource.includes('return analysis[tab].prompt;'), 'language tab output should display/copy only the prompt text.');
 
@@ -511,7 +523,7 @@ function hasPromptLabels(text) {
 }
 
 function hasPromptReasoning(text) {
-  return /\b(?:because|therefore|possibly|maybe|might|may|appears to be|should preserve|needs to keep)\b|可能|或者|因此|需保留/i.test(text);
+  return /\b(?:because|therefore|possibly|maybe|might|may|appears to be|should preserve|needs to keep)\b|可能|或者|因此|需保留|[\p{Script=Han}A-Za-z-]+\/[\p{Script=Han}A-Za-z-]+/iu.test(text);
 }
 
 function includesInsensitive(text, needle) {
