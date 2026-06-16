@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const reversePromptPath = join(root, 'src/shared/reversePrompt.ts');
 const typesPath = join(root, 'src/shared/types.ts');
+const panelPath = join(root, 'src/content/panel.tsx');
 
 const reversePromptSource = readFileSync(reversePromptPath, 'utf8');
 const typesSource = readFileSync(typesPath, 'utf8');
+const panelSource = readFileSync(panelPath, 'utf8');
 
 const promptMatch = reversePromptSource.match(/export const REVERSE_PROMPT_SYSTEM = `([\s\S]*?)`;/);
 if (!promptMatch) fail('REVERSE_PROMPT_SYSTEM template literal was not found.');
@@ -57,12 +59,15 @@ const contractChecks = [
   ['blocks forced categories', 'Do not force categories'],
   ['requires shared fact set across prompt and JSON', 'Natural-language prompts and json_prompt must be built from the same observed facts'],
   ['requires JSON to keep prompt facts', 'it should also appear in the appropriate json_prompt field'],
+  ['blocks reasoning in prompt fields', 'Prompt fields are generation instructions, not reasoning'],
+  ['keeps uncertainty out of generation prompts', 'uncertainty wording in analysis/json fields'],
+  ['requires deterministic visual instructions', 'write a deterministic visual instruction'],
   ['uses visible evidence only', 'Use only visible evidence'],
   ['allows strong visual recognition', 'strong visual recognition'],
   ['allows recognizable people and characters', 'known public person, fictional/anime/game/comic/movie character'],
   ['allows source work and event recognition', 'source work, event, landmark'],
-  ['uses uncertainty language for plausible recognition', 'appears to be'],
-  ['uncertain details keep useful evidence', 'use cautious wording instead of deleting the clue'],
+  ['uses uncertainty language outside generation prompts', 'If a detail is uncertain'],
+  ['uncertain details keep useful evidence', 'cautious wording in analysis/json fields instead of deleting the clue'],
   ['keeps output JSON-only', 'Return valid JSON only'],
   ['preserves exact top-level shape', 'Keep exactly this top-level shape'],
   ['sets recreation prompt as primary generation prompt', 'recreation_prompt is the primary generation prompt'],
@@ -268,9 +273,9 @@ const simulatedCases = [
   {
     id: 'korean_soccer_body_paint_surface',
     recreation:
-      `Vertical stadium fan portrait of one young adult East Asian-presenting woman on a football pitch at night, platinum-silver wavy hair, soft oval face, natural glossy skin with visible sweat, direct calm gaze, holding a soccer ball under her left arm while her right hand lifts a strand of hair. The white torso-and-hip surface is covered with Korean flag imagery and rough red, blue, and black brush-painted strokes; describe it by visible evidence as body-painted or a painted skin-tight covering, because the graphics follow the chest, waist, abdomen, and hip contours with wet shine and no clearly visible separate jersey hem, waistband, shorts seam, fabric fold, or loose edge. Korean flags, packed stadium crowd, green turf, white field line, large floodlights, shallow background blur. Realistic smartphone or event-photo reconstruction, style_index 28/100, bright stadium lighting, preserve paint strokes, body contours, ball paint, national-color palette, and clean clear subject without oily plastic skin or over-sharpened artifacts.`,
+      `Vertical stadium fan portrait of one young adult East Asian-presenting woman on a football pitch at night, platinum-silver wavy hair, soft oval face, natural glossy skin with visible sweat, direct calm gaze, holding a soccer ball under her left arm while her right hand lifts a strand of hair. A seamless body-contour white painted skin-tight surface covers the torso and hip area, carrying Korean flag imagery and rough red, blue, and black brush-painted strokes across the chest, waist, abdomen, and upper thighs; keep wet shine, visible abdomen and navel, no separate jersey hem, no waistband, no shorts seam, no fabric fold, no loose garment edge. Korean flags, packed stadium crowd, green turf, white field line, large floodlights, shallow background blur. Realistic smartphone event-photo reconstruction, style_index 28/100, bright stadium lighting, preserve paint strokes, body contours, ball paint, national-color palette, and clean clear subject without oily plastic skin or over-sharpened artifacts.`,
     core:
-      'Korean stadium fan portrait, silver-haired woman holding a soccer ball, Korean flag body-paint or painted skin-tight surface, floodlit football pitch.',
+      'Korean stadium fan portrait, silver-haired woman holding a soccer ball, seamless Korean flag painted skin-tight surface, floodlit football pitch.',
     negative:
       'separate crop-top jersey, separate shorts, visible waistband, fabric hem, clean printed uniform, missing brush paint, wrong national colors, missing soccer ball, changed skin tone, different facial structure, altered body proportions, beauty-polished substitute face, plastic skin, studio fashion shoot, empty stadium, wrong crop, extra people',
     jsonDetails:
@@ -281,14 +286,16 @@ const simulatedCases = [
       'platinum-silver wavy hair',
       'natural glossy skin with visible sweat',
       'holding a soccer ball under her left arm',
+      'seamless body-contour white painted skin-tight surface',
       'Korean flag imagery',
       'rough red, blue, and black brush-painted strokes',
-      'body-painted or a painted skin-tight covering',
-      'graphics follow the chest, waist, abdomen, and hip contours',
-      'no clearly visible separate jersey hem',
+      'chest, waist, abdomen, and upper thighs',
+      'visible abdomen and navel',
+      'no separate jersey hem',
       'waistband',
       'shorts seam',
       'fabric fold',
+      'loose garment edge',
       'Korean flags',
       'packed stadium crowd',
       'large floodlights',
@@ -322,12 +329,23 @@ const simulatedCases = [
       'plastic skin',
       'empty stadium',
       'wrong crop'
+    ],
+    forbiddenRecreationAnchors: [
+      'body-painted or',
+      'fabric or',
+      'because',
+      'describe it by visible evidence',
+      'appears to be',
+      'possibly',
+      'maybe',
+      'therefore',
+      'should preserve'
     ]
   },
   {
     id: 'bathroom_mirror_selfie_real_people',
     recreation:
-      `Square casual bathroom mirror selfie of two adult women standing side by side in front of a sink, both with dark messy high buns, warm tan skin tones with natural texture and visible undertones, East Asian-presenting or mixed-Asian-presenting facial features when supported by the image, oval-to-heart face shapes, dark eyes, soft makeup, slim athletic body proportions. The left woman holds a smartphone at chest height, wearing a white knotted crop T-shirt over pale pink bikini bottoms with a navel piercing; the right woman brushes her teeth, wearing an oversized white T-shirt lifted at the waist and leopard bikini bottom. Cream tile bathroom, black door on the left, white shower curtain on the right, cluttered sink counter and mirror specks preserved. Smartphone mirror-selfie realism, style_index 12/100, warm indoor bathroom light. ${realPersonFidelityClause}.`,
+      `Square casual bathroom mirror selfie of two adult women standing side by side in front of a sink, both with dark messy high buns, warm tan skin tones with natural texture and visible undertones, East Asian-presenting facial features, oval-to-heart face shapes, dark eyes, soft makeup, slim athletic body proportions. The left woman holds a smartphone at chest height, wearing a white knotted crop T-shirt over pale pink bikini bottoms with a navel piercing; the right woman brushes her teeth, wearing an oversized white T-shirt lifted at the waist and leopard bikini bottom. Cream tile bathroom, black door on the left, white shower curtain on the right, cluttered sink counter and mirror specks preserved. Smartphone mirror-selfie realism, style_index 12/100, warm indoor bathroom light. ${realPersonFidelityClause}.`,
     core:
       'Two adult women in a casual bathroom mirror selfie, warm tan skin, dark messy buns, white tops, bikini bottoms, phone and toothbrush, sink clutter.',
     negative:
@@ -340,7 +358,6 @@ const simulatedCases = [
       'natural texture',
       'visible undertones',
       'East Asian-presenting',
-      'mixed-Asian-presenting',
       'oval-to-heart face shapes',
       'soft makeup',
       'slim athletic body proportions',
@@ -438,6 +455,8 @@ for (const [label, needle] of contractChecks) {
 
 assert(systemPrompt.length >= 5500, 'system prompt is unexpectedly short for the reconstruction contract.');
 assert(systemPrompt.length <= 11000, 'system prompt is unexpectedly long; keep the runtime prompt compact enough for API use.');
+assert(!panelSource.includes('analysis[tab].prompt}\\n\\n${analysis[tab].analysis'), 'language tab output must not concatenate prompt and analysis.');
+assert(panelSource.includes('return analysis[tab].prompt;'), 'language tab output should display/copy only the prompt text.');
 
 for (const testCase of simulatedCases) {
   checkPromptSample(testCase);
@@ -465,6 +484,8 @@ function checkPromptSample(testCase) {
   assert(!hasGeneratorSyntax(testCase.core), `${testCase.id}: prompt_core contains generator-specific syntax.`);
   assert(!hasPromptLabels(testCase.recreation), `${testCase.id}: recreation_prompt contains section labels.`);
   assert(!hasPromptLabels(testCase.core), `${testCase.id}: prompt_core contains section labels.`);
+  assert(!hasPromptReasoning(testCase.recreation), `${testCase.id}: recreation_prompt contains reasoning or uncertainty wording.`);
+  assert(!hasPromptReasoning(testCase.core), `${testCase.id}: prompt_core contains reasoning or uncertainty wording.`);
 
   for (const anchor of testCase.requiredAnchors) {
     assert(includesInsensitive(testCase.recreation, anchor), `${testCase.id}: recreation_prompt missing anchor "${anchor}"`);
@@ -487,6 +508,10 @@ function hasGeneratorSyntax(text) {
 
 function hasPromptLabels(text) {
   return /\b(?:Subject|Lighting|Composition|Style|Camera|Negative):/i.test(text);
+}
+
+function hasPromptReasoning(text) {
+  return /\b(?:because|therefore|possibly|maybe|might|may|appears to be|should preserve|needs to keep)\b|可能|或者|因此|需保留/i.test(text);
 }
 
 function includesInsensitive(text, needle) {
