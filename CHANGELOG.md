@@ -4,21 +4,23 @@
 
 **English**
 
-- Rebalanced image-to-prompt reconstruction constraints so the model observes first and applies only relevant prompt controls.
+- Improves source-image fidelity so soft focus, haze, film blur, low contrast, depth-of-field, lighting texture, and intentional low-fidelity looks are less likely to be over-cleaned.
+- Keeps v0.3.0 recognition, text/layout, UI screenshot, material, camera, and style reconstruction strengths while reducing template-like drift.
 - Improves real-person reconstruction fidelity for visible facial structure, skin tone, skin texture, hair, pose, body proportions, and casual photo context.
 - Improves consistency between natural prompts and JSON output so important visible facts are less likely to be dropped.
 - Better preserves ambiguous material, pattern, and surface details instead of overfitting them into generic categories.
 - Keeps language prompt tabs focused on copy-ready prompt text instead of mixing in analysis text.
-- Makes camera, style, quality, and negative-prompt guidance more conditional to reduce over-polished or generic outputs.
+- Makes quality and negative-prompt guidance more conditional to reduce over-polished, AI-flavored, or generic outputs.
 
 **中文**
 
-- 重新平衡图片反推提示词约束，让模型先观察图像，再按需启用复刻控制。
+- 提升原图风格保真，减少朦胧、虚焦、胶片感、低对比、光线质感和刻意低清效果被过度清理的问题。
+- 保留 v0.3.0 的识别锚点、文字版式、UI 截图、材质、镜头和风格复刻能力，同时减少模板化漂移。
 - 改进真人图片的脸型、肤色、皮肤质感、发型、姿势、身体比例和生活照场景保真。
 - 改进普通提示词和 JSON 输出的一致性，减少关键可见信息丢失。
 - 更好保留复杂材质、图案和表面关系，减少被误写成通用类别。
 - 语言提示词标签页只保留可直接复制使用的提示词，不再混入分析文本。
-- 摄影、风格、质量和反向词约束改为更动态，减少过度精修和泛化输出。
+- 质量和反向词约束改为更动态，减少过度精修、AI 味和泛化输出。
 
 ## 0.3.0
 

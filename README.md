@@ -114,25 +114,29 @@ Image / Page Region / Local File
 - Options 页面配置 Base URL、API Key、Model、默认生成器和语言。
 - 默认不绑定任何 Zhijuan 云端服务。
 
-## Prompt Balance v0.3.1 / 提示词平衡 v0.3.1
+## Prompt Fidelity v0.3.1 / 提示词保真 v0.3.1
 
-v0.3.1 improves prompt consistency and reduces template-driven drift.
+v0.3.1 improves source-image fidelity and reduces template-driven drift.
 
-v0.3.1 优化提示词一致性，减少模板化造成的画面漂移。
+v0.3.1 优化原图风格保真，减少模板化造成的画面漂移。
 
 **English**
 
+- Better preserves source-image softness, haze, film blur, low contrast, depth-of-field, lighting texture, and intentional low-fidelity looks.
+- Keeps recognition, text/layout, UI screenshot, material, camera, and style reconstruction strengths from earlier releases.
 - Keeps generation prompts copy-ready without mixing in analysis text.
 - Improves consistency between natural prompts and structured JSON.
 - Better preserves real-person appearance, visible surface details, layout, and materials.
-- Reduces ambiguous wording and over-polished generic outputs.
+- Reduces ambiguous wording, over-polished AI flavor, and generic outputs.
 
 **中文**
 
+- 更好保留原图的朦胧、虚焦、胶片感、低对比、景深、光线质感和刻意低清效果。
+- 保留前序版本的识别锚点、文字版式、UI 截图、材质、镜头和风格复刻能力。
 - 生成提示词保持可直接复制，不再混入分析文本。
 - 改进普通提示词和结构化 JSON 的信息一致性。
 - 更好保留真人外观、可见表面关系、版式和材质细节。
-- 减少歧义表达和过度精修的泛化输出。
+- 减少歧义表达、过度精修 AI 味和泛化输出。
 
 ## Prompt Fidelity v0.3.0 / 提示词复刻 v0.3.0
 

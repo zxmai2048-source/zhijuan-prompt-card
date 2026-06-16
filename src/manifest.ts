@@ -3,7 +3,7 @@ const manifest = {
   name: 'Zhijuan Prompt Card',
   description: 'Turn images, page regions, and local files into structured prompts using your own vision API.',
   version: '0.3.1',
-  version_name: '0.3.1 Prompt Balance',
+  version_name: '0.3.1 Prompt Fidelity',
   permissions: ['contextMenus', 'storage', 'scripting', 'clipboardWrite'],
   host_permissions: ['<all_urls>', 'file:///*'],
   background: { service_worker: 'background.js', type: 'module' },
