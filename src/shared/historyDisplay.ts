@@ -7,13 +7,11 @@ export function normalizeHistoryLanguage(language: InterfaceLanguage): HistoryDi
 }
 
 export function getHistoryPrompt(entry: HistoryEntry, language: InterfaceLanguage | HistoryDisplayLanguage = 'en'): string {
-  const preferred = normalizeHistoryLanguage(language as InterfaceLanguage);
+  const legacyAnalysis = entry.analysis as (HistoryEntry['analysis'] & { recreation_prompt?: string }) | undefined;
   return (
-    entry.analysis?.recreation_prompt ||
-    entry.analysis?.[preferred]?.prompt ||
+    legacyAnalysis?.recreation_prompt ||
     entry.analysis?.en.prompt ||
     entry.analysis?.zh.prompt ||
-    entry.analysis?.ja.prompt ||
     ''
   );
 }

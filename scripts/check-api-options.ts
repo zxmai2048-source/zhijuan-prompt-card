@@ -15,7 +15,7 @@ const gpt5Options = buildAnalysisRequestOptions('gpt-5.5');
 assert.deepEqual(gpt5Options, {
   model: 'gpt-5.5',
   max_completion_tokens: 12288,
-  reasoning_effort: 'low'
+  reasoning_effort: 'medium'
 });
 assert.equal(hasOwn(gpt5Options, 'max_tokens'), false);
 assert.equal(hasOwn(gpt5Options, 'temperature'), false);
@@ -23,13 +23,13 @@ assert.equal(hasOwn(gpt5Options, 'temperature'), false);
 assert.deepEqual(buildAnalysisRequestOptions('openai/o4-mini'), {
   model: 'openai/o4-mini',
   max_completion_tokens: 12288,
-  reasoning_effort: 'low'
+  reasoning_effort: 'medium'
 });
 
 assert.deepEqual(buildAnalysisRequestOptions('vision-reasoning'), {
   model: 'vision-reasoning',
   max_completion_tokens: 12288,
-  reasoning_effort: 'low'
+  reasoning_effort: 'medium'
 });
 
 const fallbackOptions = buildAnalysisRequestOptions('gpt-4o');

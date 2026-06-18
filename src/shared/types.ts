@@ -1,4 +1,4 @@
-export type InterfaceLanguage = 'zh' | 'en' | 'ja';
+export type InterfaceLanguage = 'zh' | 'en';
 
 export type GeneratorSite = 'chatgpt' | 'codex' | 'jimeng' | 'gemini' | 'midjourney' | 'lovart';
 
@@ -17,10 +17,8 @@ export interface AppSettings {
 export interface PromptAnalysis {
   zh: { prompt: string; analysis: string };
   en: { prompt: string; analysis: string };
-  ja: { prompt: string; analysis: string };
   zh_style_tags: string[];
   en_style_tags: string[];
-  ja_style_tags: string[];
   json_prompt: {
     subject: string;
     action_pose: string;
@@ -33,9 +31,9 @@ export interface PromptAnalysis {
     materials: string[];
     aspect_ratio: string;
     quality_modifiers: string[];
+    fidelity_priorities: string[];
     likely_generation_intent: string;
   };
-  recreation_prompt: string;
   prompt_core: string;
   negative_prompt: string;
 }

@@ -4,7 +4,7 @@ This document defines the repeatable goal-mode loop for changing `src/shared/rev
 
 ## Objective
 
-Improve image-to-prompt reconstruction quality without changing the public `PromptAnalysis` schema or adding model/provider-specific syntax.
+Improve image-to-prompt reconstruction quality while keeping the output generator-neutral and keeping any `PromptAnalysis` schema changes explicit in docs, checks, and compatibility fallbacks.
 
 The workflow must cover:
 
@@ -21,8 +21,9 @@ A prompt optimization is ready only when all of these are true:
 
 - `REVERSE_PROMPT_SYSTEM` still asks for valid JSON only.
 - The top-level JSON shape still matches `PromptAnalysis`.
-- `recreation_prompt` is treated as the primary generation prompt.
+- `en.prompt` is treated as the primary generation prompt.
 - The prompt contract starts from faithful observation, then activates only the constraints that help reconstruct the current image.
+- `en.prompt` length scales with reconstruction need and has no fixed word cap, so dense multi-region, text-heavy, multi-subject, or layout-critical images can preserve load-bearing structure instead of being squeezed into a generic short archetype.
 - Recognizable people, fictional characters, source works, stories, scenes, landmarks, and visual-culture references are preserved as prompt anchors when the visible evidence supports them.
 - Uncertain recognition uses phrasing such as `appears to be`, `resembles`, or `inspired by` instead of omitting the clue or inventing certainty.
 - Real-person photos preserve visible face shape, facial proportions, skin tone and undertone, natural skin texture, hair texture, body proportions, pose, expression, and casual camera authenticity when relevant.
@@ -31,6 +32,7 @@ A prompt optimization is ready only when all of these are true:
 - Screenshot and UI inputs are described as screenshots or UI captures, preserving crop, layout, visible text language, overlay z-order, panels, and edge cuts while reconstructing a clean readable version by default. Thumbnail blur, accidental compression, and downsampled low resolution are not preserved unless they are clearly intentional visual style.
 - The prompt contract prioritizes aspect ratio, crop, subject scale, subject count, relative placement, camera geometry, viewpoint, motion/focus, background anchors, lighting, material finish, texture, and medium.
 - The prompt contract uses `style_index 0-100` as a plain-language stylization cue, not as a generator-specific parameter.
+- `json_prompt.fidelity_priorities` uses plain-language `priority N of 100` reconstruction cues, not generator-specific weights or model parameters, and high-priority items are reflected in `en.prompt`.
 - Professional camera, cinema, focal length, aperture, filter, film, and post-processing terms are optional reconstruction cues, not mandatory checklist items and not factual metadata unless visible.
 - Material and texture locks must name surface behavior such as matte, satin, glossy, translucent, fabric weave, leather grain, painterly soft edge, or crisp vector edge when relevant.
 - Color palettes use approximate standard HEX values plus color names and visual roles, not bare generic color names.
@@ -38,7 +40,7 @@ A prompt optimization is ready only when all of these are true:
 - Real-person quality guidance preserves natural skin texture, visible skin tone, face/body proportions, hair texture, pose, and everyday camera authenticity while avoiding replacement, commercial retouching, and changed ethnic/ancestry presentation.
 - Clean graphic, anime, product, or UI sources may still carry a concise clean-quality clause.
 - Grain, mirror marks, bathroom glass spots, room clutter, wall cracks, paper fibers, brush texture, worn surfaces, film noise, pixel art, VHS/CRT artifacts, blur, distortion, or rough walls are preserved when they are source style or real environment detail. Thumbnail blur, accidental compression, and downsampled low resolution are still removed by default when accidental.
-- `recreation_prompt` and `prompt_core` remain generator-neutral. They must not include Midjourney, Stable Diffusion, LoRA, or model parameter syntax.
+- `en.prompt` and `prompt_core` remain generator-neutral. They must not include Midjourney, Stable Diffusion, LoRA, or model parameter syntax.
 - Simulated user cases preserve load-bearing visual anchors and include image-specific negative blockers.
 
 ## Commands
@@ -77,12 +79,14 @@ npm run release:check
 
 The simulation does not call external models. It validates the prompt output shape a human would copy into a generator:
 
-- readable one-line `recreation_prompt`
+- readable one-line `en.prompt`
+- complexity-adaptive `en.prompt` length, with dense layout-critical cases allowed to expand as needed
 - compressed `prompt_core`
 - comma-separated `negative_prompt`
 - visual anchors preserved
 - recognizable identity/work/scene anchors preserved when supported
 - style_index, medium, camera/lens cue, and material/texture locks preserved when relevant
+- fidelity priorities preserved as plain-language 0-100 reconstruction priorities and compiled into the English prompt when they affect reconstruction
 - approximate HEX color palette, color names, and visual roles included in `json_prompt.colors`
 - original visible text, language, typography hierarchy, dates, numbers, logo placement, screenshot crop, and overlay z-order preserved when relevant
 - adaptive quality guidance present for the image type without erasing human appearance, intentional texture, or real environment details
@@ -100,6 +104,7 @@ Before accepting a prompt change:
 - Check whether the rules preserve strong composition, camera geometry, material behavior, and motion.
 - Check whether recognizable subjects, works, stories, places, or scenes are captured instead of flattened into generic descriptors.
 - Check whether style_index and professional camera/cinema language are used only when useful and never forced onto casual phone photos.
+- Check whether fidelity priorities resolve source conflicts such as soft optical atmosphere versus crisp commercial detail without adding generator-specific parameter syntax.
 - Check whether real-person outputs preserve visible face shape, skin tone/undertone, natural skin texture, facial proportions, hair texture, body proportions, pose, clothing, and casual authenticity.
 - Check whether cautious ethnic/ancestry presentation is included only when visually useful and paired with concrete traits, instead of being omitted or asserted as verified identity.
 - Check whether material and texture rules prevent glossy/oily/over-sharpened drift in stylized and photographic images.

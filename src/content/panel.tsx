@@ -91,7 +91,6 @@ const copy = {
     },
     failed: 'Analysis failed',
     output: 'Prompt output',
-    recreation: 'Recreation prompt',
     copy: 'Copy',
     copyJson: 'Copy JSON',
     copyNegative: 'Copy Negative',
@@ -169,7 +168,6 @@ const copy = {
     },
     failed: '识别失败',
     output: '提示词输出',
-    recreation: '复刻提示词',
     copy: '复制',
     copyJson: '复制 JSON',
     copyNegative: '复制反向词',
@@ -1268,16 +1266,6 @@ function ResultBlock(
         <pre className="zpc-result">{tabText}</pre>
       </div>
 
-      <div className="zpc-core">
-        <div className="zpc-core-head">
-          <h3>{labels.recreation}</h3>
-          <button type="button" className="zpc-copy-chip" onClick={() => props.onCopy(analysis.recreation_prompt, labels.promptCopied)}>
-            {labels.copy}
-          </button>
-        </div>
-        <p>{analysis.recreation_prompt}</p>
-      </div>
-
       <div className="zpc-actions">
         <button type="button" onClick={props.onRegenerate}>
           {labels.regenerate}
@@ -1291,7 +1279,7 @@ function ResultBlock(
 
       <div className="zpc-generator-grid">
         {(Object.keys(GENERATOR_SITES) as GeneratorSite[]).map((siteId) => (
-          <button type="button" key={siteId} onClick={() => props.onOpenGenerator(siteId, analysis.recreation_prompt)}>
+          <button type="button" key={siteId} onClick={() => props.onOpenGenerator(siteId, analysis.en.prompt)}>
             {labels.openIn} {GENERATOR_SITES[siteId].label}
           </button>
         ))}
@@ -1301,7 +1289,7 @@ function ResultBlock(
 }
 
 function usePreferredTab(analysis: PromptAnalysis | undefined, language: UiLanguage): [PanelTab, (tab: PanelTab) => void] {
-  const preferred = language === 'zh' ? 'zh' : 'en';
+  const preferred: PanelTab = 'en';
   const [tab, setTab] = useState<PanelTab>(preferred);
   useEffect(() => {
     if (analysis) setTab(preferred);
@@ -1328,10 +1316,8 @@ function getOutputCompleteness(analysis: PromptAnalysis, language: UiLanguage): 
 
   if (!analysis.zh.prompt.trim()) addMissing('zh.prompt');
   if (!analysis.en.prompt.trim()) addMissing('en.prompt');
-  if (!analysis.ja.prompt.trim()) addMissing('ja.prompt');
-  if (!analysis.recreation_prompt.trim()) addMissing('recreation_prompt');
   if (!analysis.negative_prompt.trim()) addMissing('negative_prompt');
-  if (!analysis.zh_style_tags.length && !analysis.en_style_tags.length && !analysis.ja_style_tags.length) addMissing('style_tags');
+  if (!analysis.zh_style_tags.length && !analysis.en_style_tags.length) addMissing('style_tags');
 
   const jsonFields = analysis.json_prompt;
   const requiredJsonFields: Array<keyof PromptAnalysis['json_prompt']> = [
@@ -1363,8 +1349,6 @@ function completenessFieldLabel(key: string, language: UiLanguage): string {
   const zh: Record<string, string> = {
     'zh.prompt': '中文提示词',
     'en.prompt': '英文提示词',
-    'ja.prompt': '日文提示词',
-    recreation_prompt: '复刻提示词',
     negative_prompt: '反向词',
     style_tags: '风格标签',
     subject: '主体',
@@ -1383,8 +1367,6 @@ function completenessFieldLabel(key: string, language: UiLanguage): string {
   const en: Record<string, string> = {
     'zh.prompt': 'Chinese prompt',
     'en.prompt': 'English prompt',
-    'ja.prompt': 'Japanese prompt',
-    recreation_prompt: 'recreation prompt',
     negative_prompt: 'negative prompt',
     style_tags: 'style tags',
     subject: 'subject',

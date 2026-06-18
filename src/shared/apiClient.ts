@@ -8,7 +8,7 @@ const API_RETRY_DELAYS_MS = [800, 1_800];
 const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 const ANALYSIS_TEMPERATURE = 0.18;
 const ANALYSIS_MAX_OUTPUT_TOKENS = 12_288;
-const ANALYSIS_REASONING_EFFORT: ReasoningEffort = 'low';
+const ANALYSIS_REASONING_EFFORT: ReasoningEffort = 'medium';
 
 interface OpenAiContentPart {
   type?: string;

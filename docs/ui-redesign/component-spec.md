@@ -42,7 +42,7 @@ The popup is a daily-use command surface, not a settings form. API keys, model U
   - language tabs
   - prompt text
   - style tags
-  - recreation prompt
+  - primary English prompt
   - copy/json/negative/regenerate/save actions
   - generator handoff buttons: ChatGPT, Codex, Jimeng, Gemini, Midjourney, Lovart
 

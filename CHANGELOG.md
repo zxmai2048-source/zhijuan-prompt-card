@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.2
+
+**English**
+
+- Makes the English prompt the primary copy-ready recreation prompt, with length scaling to the image instead of a fixed short cap.
+- Removes redundant hidden Japanese and duplicate recreation-prompt outputs from new model responses while keeping Chinese/English prompts, JSON prompt, negative prompt, and style tags.
+- Adds plain-language fidelity priorities in JSON output so source-defining softness, texture, compression, clarity, or layout constraints can be preserved without generator-specific parameter syntax.
+- Simplifies the result UI so users have one obvious primary prompt to copy, and generator handoff uses `en.prompt`.
+- Keeps old history readable when legacy records still contain `recreation_prompt` or Japanese settings.
+- Adds real timeline-image verification for organic continuous layouts versus stacked rectangular infographic bands.
+
+**中文**
+
+- 英文 Prompt 作为主要可复制复刻提示词，长度按图片复原需要扩展，不再受固定短词数限制。
+- 新模型输出移除冗余的隐藏日语字段和重复复刻提示词字段，同时保留中英文 Prompt、JSON Prompt、反向词和风格标签。
+- JSON 输出新增自然语言复原优先级，让原图中的柔焦、质地、压缩感、清晰度或版式约束有表达空间，但不输出生成器专属参数语法。
+- 简化结果 UI，避免出现多个看似主提示词的复制目标；生成器跳转统一使用 `en.prompt`。
+- 旧历史记录仍可读取，兼容含 `recreation_prompt` 或日语设置的旧数据。
+- 增加真实时间线图片验证，覆盖自然连续版式与矩形分栏信息图的差异。
+
 ## 0.3.1
 
 **English**

@@ -366,10 +366,8 @@ function makeAnalysis(index) {
   return {
     zh: { prompt: `视觉历史提示词 ${index + 1}，完整图片预览，提示词可复制。`, analysis: 'smoke' },
     en: { prompt, analysis: 'smoke' },
-    ja: { prompt: `スモーク履歴 ${index + 1}`, analysis: 'smoke' },
     zh_style_tags: ['历史', '缩略图'],
     en_style_tags: ['history', 'thumbnail'],
-    ja_style_tags: ['履歴'],
     json_prompt: {
       subject: `Visual history smoke ${index + 1}`,
       action_pose: 'static UI record',
@@ -382,9 +380,9 @@ function makeAnalysis(index) {
       materials: ['pixels'],
       aspect_ratio: 'mixed',
       quality_modifiers: ['readable', 'stable'],
+      fidelity_priorities: ['history card priority 80 of 100 - keep thumbnail and prompt preview readable'],
       likely_generation_intent: 'validation'
     },
-    recreation_prompt: prompt,
     prompt_core: 'visual history smoke',
     negative_prompt: 'broken image wall, cropped strip, missing placeholder'
   };

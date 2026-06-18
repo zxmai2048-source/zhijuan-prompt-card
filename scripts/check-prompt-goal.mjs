@@ -6,10 +6,12 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const reversePromptPath = join(root, 'src/shared/reversePrompt.ts');
 const typesPath = join(root, 'src/shared/types.ts');
 const panelPath = join(root, 'src/content/panel.tsx');
+const jsonRepairPath = join(root, 'src/shared/jsonRepair.ts');
 
 const reversePromptSource = readFileSync(reversePromptPath, 'utf8');
 const typesSource = readFileSync(typesPath, 'utf8');
 const panelSource = readFileSync(panelPath, 'utf8');
+const jsonRepairSource = readFileSync(jsonRepairPath, 'utf8');
 
 const promptMatch = reversePromptSource.match(/export const REVERSE_PROMPT_SYSTEM = `([\s\S]*?)`;/);
 if (!promptMatch) fail('REVERSE_PROMPT_SYSTEM template literal was not found.');
@@ -20,12 +22,9 @@ const failures = [];
 const topLevelKeys = [
   '"zh"',
   '"en"',
-  '"ja"',
   '"zh_style_tags"',
   '"en_style_tags"',
-  '"ja_style_tags"',
   '"json_prompt"',
-  '"recreation_prompt"',
   '"prompt_core"',
   '"negative_prompt"'
 ];
@@ -42,6 +41,7 @@ const jsonPromptKeys = [
   '"materials"',
   '"aspect_ratio"',
   '"quality_modifiers"',
+  '"fidelity_priorities"',
   '"likely_generation_intent"'
 ];
 
@@ -68,8 +68,13 @@ const contractChecks = [
   ['camera language remains cue-only', 'visual reconstruction cues, not factual metadata'],
   ['HEX color palette retained', 'approximate HEX colors with color name and visual role'],
   ['JSON must not drop key facts', 'do not remove load-bearing facts to make them short'],
-  ['recreation prompt is primary', 'recreation_prompt is the primary generation prompt'],
-  ['recreation prompt can be longer when needed', 'may use up to 360 words'],
+  ['fidelity priorities are plain-language controls', 'fidelity_priorities are plain-language reconstruction priorities'],
+  ['fidelity priorities use 0-100 wording', 'priority N of 100'],
+  ['high-priority fidelity must reach English prompt', 'Every high-priority fidelity item must be compiled into en.prompt'],
+  ['English prompt is primary', 'en.prompt is the primary generation prompt'],
+  ['English prompt can scale to reconstruction need', 'with no fixed word cap'],
+  ['dense sources can expand as needed', 'should expand as needed'],
+  ['dense sources must not be over-compressed', 'Do not squeeze load-bearing structure into a generic archetype'],
   ['negative prompt is image-specific', 'negative_prompt is image-specific'],
   ['source blur is not blocked globally', 'Do not put blur, grain, haze, bloom, low resolution'],
   ['soft-source blockers target polish drift', 'over-sharpened face, glossy AI skin, hyper-detailed eyes'],
@@ -126,6 +131,83 @@ const simulatedCases = [
       'over-sharpened hair strands',
       'missing foreground blur',
       'missing hazy violet light'
+    ]
+  },
+  {
+    id: 'soft_focus_nightlife_conflict',
+    recreation:
+      'Soft-focus nightlife fashion photo with diffusion-filter softness, low micro-contrast, warm bloom, halation around glass highlights, faint film grain, and phone-photo compression feel leading the look before any crisp fashion detail. Two adult East Asian-presenting women in pastel embroidered hanfu-inspired sheer gowns stand close together in a dim luxury bar interior, one in pale pink facing the camera with lowered eyes, the other in pale blue leaning to kiss her cheek, long black hair with floral hair ornaments and delicate dangling accessories. Keep the full-body vertical crop, mirrored glass cabinet at the left, large disco ball in the upper right, dark reflective ceiling, glossy black floor reflections, champagne glass tower at the right, softly readable luxury branding near the cabinet, and nightclub stair lights in the background. Prioritize the hazy lens diffusion, softened facial micro-detail, muted skin texture, light bleed, and compressed low-light atmosphere over crisp catalog clarity while keeping the clothing silhouettes, pose relationship, logo placement, glass reflections, and scene layout recognizable rather than redesigned into a sharp commercial studio fashion campaign.',
+    core:
+      'Soft-focus nightlife photo of two hanfu-inspired women in a dim luxury bar, diffusion bloom, halation, disco ball, glass reflections, phone-photo compression.',
+    negative:
+      'tack-sharp studio fashion photo, hard-edged product catalog lighting, hyper-detailed face, glossy AI skin, over-sharpened eyes, razor-sharp glass reflections, crisp luxury campaign, clean studio relighting, high-contrast HDR, plastic skin texture, missing warm bloom, missing halation, missing phone-photo compression feel, deep focus everywhere, redesigned bar interior',
+    fidelityPriorities: [
+      'soft focus priority 94 of 100 - lead reconstruction with softened edges and facial micro-detail',
+      'lens diffusion priority 91 of 100 - preserve hazy glow before crisp glass detail',
+      'bloom and halation priority 88 of 100 - keep warm light bleed around reflective highlights',
+      'phone-photo compression priority 80 of 100 - retain low-light consumer-photo texture',
+      'fine-detail sharpness priority 30 of 100 - keep clothing and logo recognizable but secondary'
+    ],
+    requiredEarlyAnchors: [
+      'Soft-focus nightlife',
+      'diffusion-filter softness',
+      'low micro-contrast',
+      'warm bloom',
+      'halation',
+      'phone-photo compression feel'
+    ],
+    requiredAnchors: [
+      'two adult East Asian-presenting women',
+      'pastel embroidered hanfu-inspired sheer gowns',
+      'dim luxury bar interior',
+      'pale pink',
+      'pale blue',
+      'floral hair ornaments',
+      'full-body vertical crop',
+      'mirrored glass cabinet',
+      'large disco ball',
+      'champagne glass tower',
+      'softly readable luxury branding',
+      'Prioritize the hazy lens diffusion',
+      'softened facial micro-detail',
+      'compressed low-light atmosphere',
+      'rather than redesigned into a sharp commercial studio fashion campaign'
+    ],
+    forbiddenAnchors: [
+      'ultra clear',
+      'sharp face',
+      'smooth skin',
+      'highly detailed eyes',
+      'crisp product photography'
+    ],
+    requiredNegativeAnchors: [
+      'tack-sharp studio fashion photo',
+      'hard-edged product catalog lighting',
+      'hyper-detailed face',
+      'glossy AI skin',
+      'over-sharpened eyes',
+      'razor-sharp glass reflections',
+      'crisp luxury campaign',
+      'clean studio relighting',
+      'missing warm bloom',
+      'missing halation',
+      'missing phone-photo compression feel'
+    ],
+    forbiddenNegativeAnchors: [
+      'no bloom',
+      'remove bloom',
+      'without bloom',
+      'no halation',
+      'remove halation',
+      'no compression',
+      'remove grain'
+    ],
+    requiredFidelityAnchors: [
+      'soft focus priority 94 of 100',
+      'lens diffusion priority 91 of 100',
+      'bloom and halation priority 88 of 100',
+      'phone-photo compression priority 80 of 100',
+      'fine-detail sharpness priority 30 of 100'
     ]
   },
   {
@@ -410,6 +492,7 @@ for (const key of jsonPromptKeys) {
   assert(systemPrompt.includes(key), `system prompt missing json_prompt key ${key}`);
   assert(typesSource.includes(stripQuotes(key)), `PromptAnalysis.json_prompt type missing key ${key}`);
 }
+assert(jsonRepairSource.includes("'fidelity_priorities'"), 'parsePromptAnalysis should normalize json_prompt.fidelity_priorities.');
 
 for (const [label, needle] of contractChecks) {
   assert(systemPrompt.includes(needle), `contract check failed: ${label}`);
@@ -419,10 +502,15 @@ for (const [label, pattern] of forbiddenSystemPatterns) {
   assert(!pattern.test(systemPrompt), `forbidden system direction found: ${label}`);
 }
 
+assert(!systemPrompt.includes('"ja"'), 'system prompt should not request hidden Japanese output.');
+assert(!systemPrompt.includes('"ja_style_tags"'), 'system prompt should not request hidden Japanese style tags.');
+assert(!systemPrompt.includes('"recreation_prompt"'), 'system prompt should not request a duplicate recreation_prompt field.');
 assert(systemPrompt.length >= 5200, 'system prompt is unexpectedly short for the fusion reconstruction contract.');
 assert(systemPrompt.length <= 11000, 'system prompt is too long; keep the runtime prompt compact enough for API use.');
 assert(!panelSource.includes('analysis[tab].prompt}\\n\\n${analysis[tab].analysis'), 'language tab output must not concatenate prompt and analysis.');
 assert(panelSource.includes('return analysis[tab].prompt;'), 'language tab output should display/copy only the prompt text.');
+assert(panelSource.includes('props.onOpenGenerator(siteId, analysis.en.prompt)'), 'generator handoff must use en.prompt as the primary recreation prompt.');
+assert(!panelSource.includes('recreation_prompt'), 'panel should not depend on a duplicate recreation_prompt output field.');
 
 for (const testCase of simulatedCases) {
   checkPromptSample(testCase);
@@ -443,25 +531,32 @@ function checkPromptSample(testCase) {
   const coreWords = wordCount(testCase.core);
   const negativeItems = testCase.negative.split(',').map((item) => item.trim()).filter(Boolean);
 
-  assert(recreationWords >= 70 && recreationWords <= 380, `${testCase.id}: recreation_prompt should be complete without rambling, got ${recreationWords}`);
+  assert(recreationWords >= 70, `${testCase.id}: en.prompt should be complete, got ${recreationWords}`);
   assert(coreWords >= 12 && coreWords <= 45, `${testCase.id}: prompt_core should stay compressed, got ${coreWords}`);
   assert(negativeItems.length >= 6 && negativeItems.length <= 24, `${testCase.id}: negative_prompt needs image-specific drift blockers, got ${negativeItems.length}.`);
-  assert(!hasGeneratorSyntax(testCase.recreation), `${testCase.id}: recreation_prompt contains generator-specific syntax.`);
+  assert(!hasGeneratorSyntax(testCase.recreation), `${testCase.id}: en.prompt contains generator-specific syntax.`);
   assert(!hasGeneratorSyntax(testCase.core), `${testCase.id}: prompt_core contains generator-specific syntax.`);
-  assert(!hasPromptLabels(testCase.recreation), `${testCase.id}: recreation_prompt contains section labels.`);
+  assert(!hasPromptLabels(testCase.recreation), `${testCase.id}: en.prompt contains section labels.`);
   assert(!hasPromptLabels(testCase.core), `${testCase.id}: prompt_core contains section labels.`);
-  assert(!hasPromptReasoning(testCase.recreation), `${testCase.id}: recreation_prompt contains reasoning or uncertainty wording.`);
+  assert(!hasPromptReasoning(testCase.recreation), `${testCase.id}: en.prompt contains reasoning or uncertainty wording.`);
   assert(!hasPromptReasoning(testCase.core), `${testCase.id}: prompt_core contains reasoning or uncertainty wording.`);
 
   for (const anchor of testCase.requiredAnchors || []) {
-    assert(includesInsensitive(testCase.recreation, anchor), `${testCase.id}: recreation_prompt missing anchor "${anchor}"`);
+    assert(includesInsensitive(testCase.recreation, anchor), `${testCase.id}: en.prompt missing anchor "${anchor}"`);
+  }
+  for (const anchor of testCase.requiredEarlyAnchors || []) {
+    assertAppearsEarly(testCase.recreation, anchor, testCase.id);
   }
   for (const anchor of testCase.forbiddenAnchors || []) {
-    assert(!includesInsensitive(testCase.recreation, anchor), `${testCase.id}: recreation_prompt should not include "${anchor}"`);
+    assert(!includesInsensitive(testCase.recreation, anchor), `${testCase.id}: en.prompt should not include "${anchor}"`);
   }
   for (const anchor of testCase.requiredNegativeAnchors || []) {
     assert(includesInsensitive(testCase.negative, anchor), `${testCase.id}: negative_prompt missing blocker "${anchor}"`);
   }
+  for (const anchor of testCase.forbiddenNegativeAnchors || []) {
+    assert(!includesInsensitive(testCase.negative, anchor), `${testCase.id}: negative_prompt should not include "${anchor}"`);
+  }
+  checkFidelityPriorities(testCase);
 }
 
 function hasGeneratorSyntax(text) {
@@ -478,6 +573,25 @@ function hasPromptReasoning(text) {
 
 function includesInsensitive(text, needle) {
   return text.toLowerCase().includes(needle.toLowerCase());
+}
+
+function assertAppearsEarly(text, needle, id) {
+  const index = text.toLowerCase().indexOf(needle.toLowerCase());
+  assert(index >= 0, `${id}: en.prompt missing early anchor "${needle}"`);
+  assert(index <= Math.ceil(text.length * 0.35), `${id}: en.prompt should introduce "${needle}" before subject/detail cues.`);
+}
+
+function checkFidelityPriorities(testCase) {
+  if (!testCase.fidelityPriorities) return;
+  assert(testCase.fidelityPriorities.length >= 3 && testCase.fidelityPriorities.length <= 7, `${testCase.id}: fidelity_priorities should contain 3-7 items.`);
+  for (const item of testCase.fidelityPriorities) {
+    assert(/priority \d{1,3} of 100/i.test(item), `${testCase.id}: fidelity priority missing "priority N of 100" wording: ${item}`);
+    assert(!hasGeneratorSyntax(item), `${testCase.id}: fidelity priority contains generator-specific syntax: ${item}`);
+    assert(!item.includes('/100'), `${testCase.id}: fidelity priority should use "of 100", not slash syntax.`);
+  }
+  for (const anchor of testCase.requiredFidelityAnchors || []) {
+    assert(testCase.fidelityPriorities.some((item) => includesInsensitive(item, anchor)), `${testCase.id}: fidelity_priorities missing "${anchor}"`);
+  }
 }
 
 function wordCount(text) {

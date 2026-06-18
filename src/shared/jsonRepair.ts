@@ -12,7 +12,7 @@ const jsonPromptStringFields = [
   'likely_generation_intent'
 ] as const;
 
-const jsonPromptArrayFields = ['colors', 'materials', 'quality_modifiers'] as const;
+const jsonPromptArrayFields = ['colors', 'materials', 'quality_modifiers', 'fidelity_priorities'] as const;
 
 export function parsePromptAnalysis(raw: unknown): PromptAnalysis {
   const value = typeof raw === 'string' ? JSON.parse(extractJsonText(raw)) : raw;
@@ -20,21 +20,16 @@ export function parsePromptAnalysis(raw: unknown): PromptAnalysis {
 
   const zh = normalizeLanguageBlock(value.zh, 'zh');
   const en = normalizeLanguageBlock(value.en, 'en');
-  const ja = normalizeLanguageBlock(value.ja, 'ja');
   const jsonPrompt = normalizeJsonPrompt(value.json_prompt);
-  const recreationPrompt = requiredString(value.recreation_prompt, 'recreation_prompt');
   const promptCore = requiredString(value.prompt_core, 'prompt_core');
   const negativePrompt = requiredString(value.negative_prompt, 'negative_prompt');
 
   return {
     zh,
     en,
-    ja,
     zh_style_tags: normalizeStringArray(value.zh_style_tags),
     en_style_tags: normalizeStringArray(value.en_style_tags),
-    ja_style_tags: normalizeStringArray(value.ja_style_tags),
     json_prompt: jsonPrompt,
-    recreation_prompt: recreationPrompt,
     prompt_core: promptCore,
     negative_prompt: negativePrompt
   };

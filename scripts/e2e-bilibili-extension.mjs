@@ -17,16 +17,12 @@ const analysisPayload = {
     analysis: '本地 stub 已识别到图片输入，端到端流程可解析。'
   },
   en: {
-    prompt: 'Bilibili homepage capture test prompt with video cards, navigation, and thumbnail imagery.',
+    prompt:
+      'A sharp desktop browser screenshot of the Bilibili homepage with Chinese navigation, video thumbnail cards, and a compact floating image-to-prompt tool panel, clean readable UI, realistic software product capture.',
     analysis: 'The local stub received an image input and returned a valid schema.'
-  },
-  ja: {
-    prompt: 'Bilibili ホームページのキャプチャテストプロンプト。',
-    analysis: 'ローカル stub が画像入力を受け取り、有効なスキーマを返しました。'
   },
   zh_style_tags: ['网页截图', '视频封面', '中文界面'],
   en_style_tags: ['web screenshot', 'video thumbnails', 'Chinese UI'],
-  ja_style_tags: ['ウェブ画面', '動画サムネイル'],
   json_prompt: {
     subject: 'Bilibili homepage capture test',
     action_pose: 'Static webpage screenshot selected by a user region capture or image picker',
@@ -39,10 +35,9 @@ const analysisPayload = {
     materials: ['pixels', 'web UI', 'thumbnail imagery'],
     aspect_ratio: 'browser dependent',
     quality_modifiers: ['sharp UI text', 'clean screenshot', 'usable prompt structure'],
+    fidelity_priorities: ['UI layout priority 88 of 100 - preserve screenshot geometry and Chinese navigation', 'text readability priority 80 of 100 - keep interface labels legible without redesigning the page'],
     likely_generation_intent: 'Validate image-to-prompt extension pipeline'
   },
-  recreation_prompt:
-    'A sharp desktop browser screenshot of the Bilibili homepage with Chinese navigation, video thumbnail cards, and a compact floating image-to-prompt tool panel, clean readable UI, realistic software product capture.',
   prompt_core: 'Bilibili homepage screenshot, Chinese web UI, video thumbnails, floating prompt tool',
   negative_prompt: 'blur, unreadable text, broken layout, missing UI, distorted screenshot'
 };
@@ -370,11 +365,12 @@ async function run() {
     await page.screenshot({ path: captureResultPath, fullPage: false });
     evidence.screenshots.captureResult = captureResultPath;
 
-    await clickShadow(page, { selector: '.zpc-core .zpc-copy-chip' });
+    await clickShadow(page, { text: '英文', exact: true });
+    await clickShadow(page, { selector: '.zpc-prompt-output .zpc-copy-chip' });
     await page.waitForTimeout(300);
     const promptClipboard = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
-    if (!promptClipboard.includes('Bilibili homepage')) throw new Error('copy did not write recreation prompt to clipboard');
-    evidence.checks.push('copy_recreation_prompt_ok');
+    if (!promptClipboard.includes('Bilibili homepage')) throw new Error('copy did not write English prompt to clipboard');
+    evidence.checks.push('copy_english_prompt_ok');
 
     await clickShadow(page, { text: 'JSON', exact: true });
     await clickShadow(page, { selector: '.zpc-prompt-output .zpc-copy-chip' });
@@ -385,10 +381,13 @@ async function run() {
 
     await clickShadow(page, { text: '英文', exact: true });
     await scrollPanel(page, 700);
-    await clickShadow(page, { text: '保存', exact: true });
-    await page.waitForTimeout(500);
-    const afterSave = await panelText(page);
-    if (!afterSave.includes('已保存') && !afterSave.includes('Saved')) throw new Error('favorite/save state did not update');
+    await clickShadow(page, { selector: '.zpc-actions button:last-child' });
+    await page.waitForFunction(() => {
+      const root = document.getElementById('zhijuan-prompt-root')?.shadowRoot;
+      const actionText = root?.querySelector('.zpc-actions button:last-child')?.textContent || '';
+      const panelText = root?.querySelector('.zpc-panel')?.textContent || '';
+      return actionText.includes('已保存') || actionText.includes('Saved') || panelText.includes('已保存') || panelText.includes('Saved');
+    });
     evidence.checks.push('favorite_toggle_ok');
 
     await clickShadow(page, { text: '重新识别', exact: true });

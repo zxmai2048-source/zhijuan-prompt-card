@@ -1,24 +1,31 @@
 # Verification
 
-## v0.3.1 Test Build
+## v0.3.2 Test Build
 
 - Prompt optimization goal: pass, `npm run check:prompt-goal`.
-- Prompt goal coverage: 46 contract rules, 10 reconstruction priorities, 6 simulated human cases.
-- Simulated prompt cases: high-style anime energy, monochrome studio portrait, Chinese concert poster, sports dashboard screenshot with overlay, real-person bathroom mirror selfie, casual smartphone photo.
+- Prompt goal coverage: 34 contract rules, 10 simulated fidelity cases.
+- Simulated prompt cases: soft-focus nightlife conflict, high-style anime energy, monochrome studio portrait, Chinese concert poster, sports dashboard screenshot with overlay, real-person bathroom mirror selfie, casual smartphone photo, dense civilization timeline, UI/product capture, and text-heavy layout reconstruction.
 - Typecheck: pass, `npm run typecheck`.
+- API option check: pass, `npm run check:api-options`.
 - Storage check: pass, `npm run check:storage`.
 - URL check: pass, `npm run check:url`.
 - Diff whitespace: pass, `git diff --check`.
 - Build: pass, `npm run build`.
+- Bilibili E2E: pass, `npm run e2e:bilibili`.
+- Visual history smoke: pass, `npm run smoke:history`.
 - Test package: pass, `npm run release:package`.
 - Release scan: pass, `npm run release:check`.
-- Package output: `release/zhijuan-prompt-card-0.3.1.zip`.
-- Package sha256: `1c03c4fe0623146809726f0ee4aee0e13d9280f250b62a7414de7b95fadc5c20`.
-- Dist manifest: pass, manifest `version` is `0.3.1`, `version_name` is `0.3.1 Prompt Balance Test`.
-- Zip manifest: pass, manifest `version` is `0.3.1`, `version_name` is `0.3.1 Prompt Balance Test`.
-- BridgeDeck model smoke: pass, `gpt-5.5` through `http://127.0.0.1:8876/v1`.
-- Model smoke cases: real-person bathroom mirror selfie preserved East Asian-presenting cue, warm skin tone, natural makeup, casual selfie context, mirror smudges, and no forced cinema terms; Tatsumaki image preserved `Tatsumaki / Tornado of Terror from One Punch Man`; Luo Tianyi poster preserved `洛天依`, Chinese title/date text, and poster layout.
-- v0.3.1 scope: prompt-only balance update, stronger real-person visible appearance fidelity, conditional camera/style/quality guidance, negative prompt blocker limits, version bump for browser testing.
+- Package output: `release/zhijuan-prompt-card-0.3.2.zip`.
+- Package sha256: `a2ef89a73e37a97a1961b30eaec3a17c1c677b9b8c0c8041c9534f91c6cc3b9e`.
+- Dist manifest: pass, manifest `version` is `0.3.2`, `version_name` is `0.3.2 Prompt Output`.
+- Zip manifest: pass, manifest `version` is `0.3.2`, `version_name` is `0.3.2 Prompt Output`.
+- Prior BridgeDeck model smoke: pass, `gpt-5.5` through `http://127.0.0.1:8876/v1`, captured before the `json_prompt.fidelity_priorities` schema addition.
+- Prior model smoke cases: real-person bathroom mirror selfie preserved East Asian-presenting cue, warm skin tone, natural makeup, casual selfie context, mirror smudges, and no forced cinema terms; Tatsumaki image preserved `Tatsumaki / Tornado of Terror from One Punch Man`; Luo Tianyi poster preserved `洛天依`, Chinese title/date text, and poster layout.
+- Prior real timeline image comparison: pass, `tmp/real-image-tests/summary.json`, captured before the `json_prompt.fidelity_priorities` schema addition.
+- Prior real image 1, organic civilization timeline: pass, returned no hidden Japanese or duplicate recreation prompt fields; `en.prompt` was 275 words, captured curved/continuous Earth cross-section composition, and did not describe rectangular bands.
+- Prior real image 2, banded timeline poster: pass, returned no hidden Japanese or duplicate recreation prompt fields; `en.prompt` was 345 words, preserved Chinese timeline text and explicitly captured stacked/horizontal panel structure.
+- Real soft-focus nightlife model rerun: pass, `tmp/real-image-tests/soft-focus-nightlife-v032.json`; returned `json_prompt.fidelity_priorities`, no hidden Japanese or duplicate recreation-prompt fields, `en.prompt` was 286 words, negative prompt had 23 image-specific blockers, and the English prompt covered soft focus, bloom/halation, phone-photo compression, and anti-commercial-sharpness drift.
+- v0.3.2 scope: prompt-output optimization, `en.prompt` as the primary recreation prompt, plain-language fidelity priorities in JSON output, removal of redundant hidden Japanese and duplicate recreation-prompt outputs from new model responses, stronger visible appearance fidelity, conditional camera/style/quality guidance, negative prompt blocker limits, API compatibility, and update notices.
 - Release status: not tagged and not published. This build is for user browser testing before a GitHub release.
 
 ## Release 0.3.0
@@ -110,7 +117,7 @@
 - Vision request: pass
 - Schema parse through `analyzeImageWithApi`: pass
 - Extension-triggered image analysis through BridgeDeck: pass.
-- Floating panel result render: pass, English prompt/recreation/negative controls visible.
+- Floating panel result render: pass, English prompt, Chinese prompt, JSON, negative controls, and style tags visible.
 - Copy button: pass, `Prompt copied` notice shown.
 - Generator open: pass, Gemini tab opened.
 - History after image analysis: pass, one successful local entry.
@@ -134,7 +141,7 @@
   "subject": "One large saturated orange circular disk, abstract sun-like form, centered in a simple geometric landscape.",
   "colors": ["deep black-navy", "vivid orange", "warm off-white"],
   "en_style_tags": ["minimal geometry", "flat vector", "abstract sunset", "high contrast"],
-  "recreation_prompt_sample": "A clean minimalist flat vector illustration of an abstract sunset icon: a single vivid orange circular disk centered horizontally in the upper middle of a solid deep black-navy canvas..."
+  "en_prompt_sample": "A clean minimalist flat vector illustration of an abstract sunset icon: a single vivid orange circular disk centered horizontally in the upper middle of a solid deep black-navy canvas..."
 }
 ```
 
