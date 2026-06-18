@@ -1320,7 +1320,7 @@ function getOutputCompleteness(analysis: PromptAnalysis, language: UiLanguage): 
   if (!analysis.zh_style_tags.length && !analysis.en_style_tags.length) addMissing('style_tags');
 
   const jsonFields = analysis.json_prompt;
-  const requiredJsonFields: Array<keyof PromptAnalysis['json_prompt']> = [
+  const legacyJsonFields: Array<keyof PromptAnalysis['json_prompt']> = [
     'subject',
     'action_pose',
     'details_appearance',
@@ -1334,10 +1334,22 @@ function getOutputCompleteness(analysis: PromptAnalysis, language: UiLanguage): 
     'quality_modifiers',
     'likely_generation_intent'
   ];
+  const v2JsonFields: Array<keyof PromptAnalysis['json_prompt']> = [
+    'schema_version',
+    'summary',
+    'generation_prompt',
+    'generation_negative_prompt',
+    'spatial_dynamics',
+    'fidelity_priorities',
+    'global_fingerprint',
+    'observation_units',
+    'text_elements',
+    'reconstruction_priorities'
+  ];
+  const requiredJsonFields = jsonFields.schema_version === 'reconstruction_v2' ? [...legacyJsonFields, ...v2JsonFields] : legacyJsonFields;
   for (const field of requiredJsonFields) {
     const value = jsonFields[field];
-    const filled = Array.isArray(value) ? value.some((item) => item.trim()) : value.trim().length > 0;
-    if (!filled) addMissing(String(field));
+    if (!isFilledJsonValue(value)) addMissing(String(field));
   }
 
   if (!missing.length) return { label: language === 'zh' ? copy.zh.complete : copy.en.complete, missing };
@@ -1351,6 +1363,11 @@ function completenessFieldLabel(key: string, language: UiLanguage): string {
     'en.prompt': '英文提示词',
     negative_prompt: '反向词',
     style_tags: '风格标签',
+    schema_version: 'JSON版本',
+    summary: '复原摘要',
+    generation_prompt: 'JSON生成提示词',
+    generation_negative_prompt: 'JSON反向词',
+    spatial_dynamics: '空间动势',
     subject: '主体',
     action_pose: '动作姿态',
     details_appearance: '外观细节',
@@ -1362,6 +1379,11 @@ function completenessFieldLabel(key: string, language: UiLanguage): string {
     materials: '材质',
     aspect_ratio: '画幅比例',
     quality_modifiers: '质量修饰词',
+    fidelity_priorities: '复原优先级',
+    global_fingerprint: '全局视觉指纹',
+    observation_units: '动态观察单元',
+    text_elements: '文字元素',
+    reconstruction_priorities: '复原取舍',
     likely_generation_intent: '生成意图'
   };
   const en: Record<string, string> = {
@@ -1369,6 +1391,11 @@ function completenessFieldLabel(key: string, language: UiLanguage): string {
     'en.prompt': 'English prompt',
     negative_prompt: 'negative prompt',
     style_tags: 'style tags',
+    schema_version: 'JSON version',
+    summary: 'reconstruction summary',
+    generation_prompt: 'JSON generation prompt',
+    generation_negative_prompt: 'JSON negative prompt',
+    spatial_dynamics: 'spatial dynamics',
     subject: 'subject',
     action_pose: 'action/pose',
     details_appearance: 'appearance details',
@@ -1380,9 +1407,23 @@ function completenessFieldLabel(key: string, language: UiLanguage): string {
     materials: 'materials',
     aspect_ratio: 'aspect ratio',
     quality_modifiers: 'quality modifiers',
+    fidelity_priorities: 'fidelity priorities',
+    global_fingerprint: 'global fingerprint',
+    observation_units: 'observation units',
+    text_elements: 'text elements',
+    reconstruction_priorities: 'reconstruction priorities',
     likely_generation_intent: 'generation intent'
   };
   return (language === 'zh' ? zh : en)[key] || key;
+}
+
+function isFilledJsonValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(isFilledJsonValue);
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'boolean') return true;
+  if (value && typeof value === 'object') return Object.values(value).some(isFilledJsonValue);
+  return false;
 }
 
 function tabLabel(tab: PanelTab, language: UiLanguage): string {

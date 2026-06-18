@@ -152,6 +152,8 @@ function estimateAsciiBytes(value: string): number {
 export function buildHistoryTitle(analysis?: PromptAnalysis, fallback = 'Untitled image'): string {
   const subject = analysis?.json_prompt?.subject?.trim();
   if (subject) return truncate(subject, 96);
+  const summary = analysis?.json_prompt?.summary?.trim();
+  if (summary) return truncate(summary, 96);
   const legacyAnalysis = analysis as (PromptAnalysis & { recreation_prompt?: string }) | undefined;
   const prompt = legacyAnalysis?.recreation_prompt?.trim() || analysis?.en?.prompt?.trim() || analysis?.zh?.prompt?.trim();
   if (prompt) return truncate(prompt, 72);

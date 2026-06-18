@@ -20,6 +20,11 @@ export interface PromptAnalysis {
   zh_style_tags: string[];
   en_style_tags: string[];
   json_prompt: {
+    schema_version: string;
+    summary: string;
+    generation_prompt: string;
+    generation_negative_prompt: string;
+    spatial_dynamics: string;
     subject: string;
     action_pose: string;
     details_appearance: string;
@@ -32,6 +37,40 @@ export interface PromptAnalysis {
     aspect_ratio: string;
     quality_modifiers: string[];
     fidelity_priorities: string[];
+    global_fingerprint: {
+      style_index: number;
+      density: string;
+      spatial_flow: string;
+      optical_finish: string[];
+      render_finish: string[];
+      palette: string[];
+    };
+    observation_units: Array<{
+      id: string;
+      kind: string;
+      priority: number;
+      prompt: string;
+      evidence: string;
+      location: string;
+      must_preserve: string[];
+      avoid_drift: string[];
+    }>;
+    text_elements: Array<{
+      content: string;
+      language: string;
+      role: string;
+      location: string;
+      typography: string;
+      legibility: string;
+      priority: number;
+    }>;
+    reconstruction_priorities: Array<{
+      cue: string;
+      priority: number;
+      tradeoff: string;
+      compile_to_en_prompt: boolean;
+      risk_if_missing: string;
+    }>;
     likely_generation_intent: string;
   };
   prompt_core: string;

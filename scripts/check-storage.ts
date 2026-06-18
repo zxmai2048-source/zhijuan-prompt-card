@@ -19,6 +19,11 @@ const legacyAnalysis = {
   zh_style_tags: [],
   en_style_tags: [],
   json_prompt: {
+    schema_version: 'reconstruction_v2',
+    summary: '',
+    generation_prompt: 'new shorter English prompt',
+    generation_negative_prompt: '',
+    spatial_dynamics: '',
     subject: '',
     action_pose: '',
     details_appearance: '',
@@ -31,6 +36,17 @@ const legacyAnalysis = {
     aspect_ratio: '',
     quality_modifiers: [],
     fidelity_priorities: [],
+    global_fingerprint: {
+      style_index: 0,
+      density: '',
+      spatial_flow: '',
+      optical_finish: [],
+      render_finish: [],
+      palette: []
+    },
+    observation_units: [],
+    text_elements: [],
+    reconstruction_priorities: [],
     likely_generation_intent: ''
   },
   prompt_core: '',

@@ -24,6 +24,13 @@ const analysisPayload = {
   zh_style_tags: ['网页截图', '视频封面', '中文界面'],
   en_style_tags: ['web screenshot', 'video thumbnails', 'Chinese UI'],
   json_prompt: {
+    schema_version: 'reconstruction_v2',
+    summary: 'Bilibili homepage screenshot with Chinese navigation, thumbnail grid, and floating prompt extension panel',
+    generation_prompt:
+      'A sharp desktop browser screenshot of the Bilibili homepage with Chinese navigation, video thumbnail cards, and a compact floating image-to-prompt tool panel, preserving the browser viewport crop, UI text hierarchy, thumbnail grid, and extension overlay z-order as a clean readable software screenshot.',
+    generation_negative_prompt: 'blur, unreadable text, broken layout, missing UI, distorted screenshot',
+    spatial_dynamics:
+      'Static browser screenshot; top navigation leads into the video thumbnail grid; floating prompt panel sits above the page content with clear z-order.',
     subject: 'Bilibili homepage capture test',
     action_pose: 'Static webpage screenshot selected by a user region capture or image picker',
     details_appearance: 'Navigation links, video cards, thumbnail images, compact Chinese text, floating Zhijuan panel',
@@ -36,6 +43,46 @@ const analysisPayload = {
     aspect_ratio: 'browser dependent',
     quality_modifiers: ['sharp UI text', 'clean screenshot', 'usable prompt structure'],
     fidelity_priorities: ['UI layout priority 88 of 100 - preserve screenshot geometry and Chinese navigation', 'text readability priority 80 of 100 - keep interface labels legible without redesigning the page'],
+    global_fingerprint: {
+      style_index: 18,
+      density: 'dense web UI',
+      spatial_flow: 'browser viewport hierarchy with navigation first, thumbnails below, floating tool panel above page content',
+      optical_finish: ['direct screen capture', 'crisp UI text'],
+      render_finish: ['software screenshot', 'web thumbnail grid'],
+      palette: ['#FFFFFF white - page background', '#FB7299 pink - Bilibili accent', '#18191C dark text - UI labels']
+    },
+    observation_units: [
+      {
+        id: 'ui_layout',
+        kind: 'layout_flow',
+        priority: 88,
+        prompt: 'preserve the browser screenshot geometry, Chinese navigation hierarchy, video thumbnail grid, and floating prompt panel z-order',
+        evidence: 'visible webpage layout and extension overlay',
+        location: 'full browser viewport',
+        must_preserve: ['Chinese navigation', 'thumbnail grid', 'floating panel'],
+        avoid_drift: ['redesigned landing page', 'translated navigation', 'missing extension overlay']
+      }
+    ],
+    text_elements: [
+      {
+        content: 'Chinese navigation and interface labels',
+        language: 'Chinese',
+        role: 'web UI text',
+        location: 'top navigation and page cards',
+        typography: 'compact screen UI text',
+        legibility: 'clear to partial',
+        priority: 80
+      }
+    ],
+    reconstruction_priorities: [
+      {
+        cue: 'preserve screenshot layout and original Chinese UI text',
+        priority: 88,
+        tradeoff: 'layout fidelity outranks polished app redesign',
+        compile_to_en_prompt: true,
+        risk_if_missing: 'the page becomes a generic redesigned video website'
+      }
+    ],
     likely_generation_intent: 'Validate image-to-prompt extension pipeline'
   },
   prompt_core: 'Bilibili homepage screenshot, Chinese web UI, video thumbnails, floating prompt tool',
@@ -71,12 +118,16 @@ const server = http.createServer(async (req, res) => {
   } catch {
     parsed = {};
   }
-  const imagePart = parsed?.messages?.[0]?.content?.find?.((part) => part?.image_url?.url)?.image_url?.url || '';
+  const imagePartObject = parsed?.messages?.[0]?.content?.find?.((part) => part?.image_url?.url)?.image_url || {};
+  const imagePart = imagePartObject.url || '';
   requestSummaries.push({
     index: requestCount,
     model: parsed?.model,
     hasAuthorization: Boolean(req.headers.authorization),
     imagePrefix: imagePart.slice(0, 30),
+    imageMime: imagePart.match(/^data:([^;,]+)/)?.[1] || '',
+    imageDetail: imagePartObject.detail || '',
+    hasTopLevelImageDetail: Object.prototype.hasOwnProperty.call(parsed, 'image_detail'),
     imageChars: imagePart.length
   });
 
@@ -452,6 +503,9 @@ async function run() {
     await page.screenshot({ path: finalPath, fullPage: false });
     evidence.screenshots.finalPanel = finalPath;
     evidence.requestCount = requestCount;
+    if (!requestSummaries.length || requestSummaries.some((summary) => summary.imageDetail !== 'high' || summary.hasTopLevelImageDetail)) {
+      throw new Error(`image detail was not sent as nested high detail ${JSON.stringify(requestSummaries)}`);
+    }
     evidence.summaryPath = path.join(artifactsDir, `pw-e2e-summary-${Date.now()}.json`);
     await writeFile(evidence.summaryPath, JSON.stringify(evidence, null, 2));
     console.log(JSON.stringify(evidence, null, 2));

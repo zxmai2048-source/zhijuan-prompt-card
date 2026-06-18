@@ -7,11 +7,25 @@ const reversePromptPath = join(root, 'src/shared/reversePrompt.ts');
 const typesPath = join(root, 'src/shared/types.ts');
 const panelPath = join(root, 'src/content/panel.tsx');
 const jsonRepairPath = join(root, 'src/shared/jsonRepair.ts');
+const imageDataPath = join(root, 'src/shared/imageData.ts');
+const packageJsonPath = join(root, 'package.json');
+const jsonRepairTestPath = join(root, 'scripts/check-json-repair.ts');
+const manualRealTestPath = join(root, 'scripts/manual-real-extension-test.mjs');
+const realStructureAuditPath = join(root, 'scripts/real-image-structural-audit.ts');
+const realJsonAuditPath = join(root, 'scripts/real-image-json-readiness-audit.ts');
+const installedAcceptancePath = join(root, 'docs/installed-extension-acceptance.md');
 
 const reversePromptSource = readFileSync(reversePromptPath, 'utf8');
 const typesSource = readFileSync(typesPath, 'utf8');
 const panelSource = readFileSync(panelPath, 'utf8');
 const jsonRepairSource = readFileSync(jsonRepairPath, 'utf8');
+const imageDataSource = readFileSync(imageDataPath, 'utf8');
+const packageJsonSource = readFileSync(packageJsonPath, 'utf8');
+const jsonRepairTestSource = readFileSync(jsonRepairTestPath, 'utf8');
+const manualRealTestSource = readFileSync(manualRealTestPath, 'utf8');
+const realStructureAuditSource = readFileSync(realStructureAuditPath, 'utf8');
+const realJsonAuditSource = readFileSync(realJsonAuditPath, 'utf8');
+const installedAcceptanceSource = readFileSync(installedAcceptancePath, 'utf8');
 
 const promptMatch = reversePromptSource.match(/export const REVERSE_PROMPT_SYSTEM = `([\s\S]*?)`;/);
 if (!promptMatch) fail('REVERSE_PROMPT_SYSTEM template literal was not found.');
@@ -30,6 +44,11 @@ const topLevelKeys = [
 ];
 
 const jsonPromptKeys = [
+  '"schema_version"',
+  '"summary"',
+  '"generation_prompt"',
+  '"generation_negative_prompt"',
+  '"spatial_dynamics"',
   '"subject"',
   '"action_pose"',
   '"details_appearance"',
@@ -42,6 +61,10 @@ const jsonPromptKeys = [
   '"aspect_ratio"',
   '"quality_modifiers"',
   '"fidelity_priorities"',
+  '"global_fingerprint"',
+  '"observation_units"',
+  '"text_elements"',
+  '"reconstruction_priorities"',
   '"likely_generation_intent"'
 ];
 
@@ -61,6 +84,8 @@ const contractChecks = [
   ['ancestry presentation is cautious but allowed', 'Ethnic or ancestry presentation is not verified identity'],
   ['visible text original language retained', 'Preserve original language and script'],
   ['text translation blocked', 'do not translate, romanize, paraphrase, replace, invent, or reorder text'],
+  ['ambiguous text is not over-confirmed', 'ambiguous glyphs are partial unless every character is unambiguous'],
+  ['JSON exact text quotes require clear text elements', 'generation_prompt may quote exact text only from clear text_elements'],
   ['screenshot and UI fidelity retained', 'preserve the image as that object or capture'],
   ['surface relationship fidelity retained', 'For surface relationships, describe what is visible'],
   ['ambiguous surfaces use one target', 'Use one clear generation target, not alternatives'],
@@ -68,14 +93,36 @@ const contractChecks = [
   ['camera language remains cue-only', 'visual reconstruction cues, not factual metadata'],
   ['HEX color palette retained', 'approximate HEX colors with color name and visual role'],
   ['JSON must not drop key facts', 'do not remove load-bearing facts to make them short'],
+  ['JSON copy-ready generation layer retained', 'JSON may be copied directly into generators'],
+  ['JSON generation prompt is continuous', 'generation_prompt must be a continuous generation-ready paragraph'],
+  ['JSON generation prompt is strongest input', 'strongest high-fidelity generation input'],
+  ['JSON generation prompt compiles evidence', 'compiling all source-defining observation_units, text_elements, reconstruction_priorities, global_fingerprint, and spatial_dynamics'],
+  ['JSON generation prompt is not weaker than English', 'must not be weaker than en.prompt'],
+  ['JSON negative prompt mirrors top-level negative', 'generation_negative_prompt must mirror negative_prompt'],
+  ['JSON negative prompt compiles high-priority drift blockers', 'include high-priority avoid_drift, risk_if_missing, missing text, motion, material, boundary blockers'],
+  ['JSON dynamic relationships are not array-only', 'Do not leave motion, floating/suspended objects, contact/support, z-depth, text placement, material/surface behavior, optical finish, or occlusion only in arrays'],
   ['fidelity priorities are plain-language controls', 'fidelity_priorities are plain-language reconstruction priorities'],
   ['fidelity priorities use 0-100 wording', 'priority N of 100'],
   ['high-priority fidelity must reach English prompt', 'Every high-priority fidelity item must be compiled into en.prompt'],
-  ['English prompt is primary', 'en.prompt is the primary generation prompt'],
+  ['dynamic reconstruction schema retained', 'reconstruction_v2'],
+  ['global fingerprint is first-class', 'global_fingerprint'],
+  ['dynamic observation units are required', 'Choose observation_units dynamically'],
+  ['observation units avoid image-type templates', 'Do not force image-type templates'],
+  ['source-defining skeleton enters English prompt', 'source-defining reconstruction skeleton'],
+  ['layout skeleton appears before local detail', 'Compile this skeleton into the first third of en.prompt'],
+  ['boundary clarity is source-dependent', 'Preserve boundary clarity as observed'],
+  ['local detail cannot crowd out structure', 'Local objects must not crowd out the source-defining structure'],
+  ['detail budget controls dense prompts', 'Use detail_budget observation units'],
+  ['priority values are plain JSON ranking', 'priority is a plain JSON ranking from 0 to 100'],
+  ['high-priority observations compile to English prompt', 'Every observation or reconstruction priority at 85 or higher must appear in en.prompt'],
+  ['reconstruction tradeoffs are explicit', 'Use reconstruction_priorities to express visual tradeoffs'],
+  ['visible text elements are structured', 'Use text_elements for visible text'],
+  ['English prompt is default UI prompt', 'en.prompt is the default UI generation prompt'],
   ['English prompt can scale to reconstruction need', 'with no fixed word cap'],
   ['dense sources can expand as needed', 'should expand as needed'],
   ['dense sources must not be over-compressed', 'Do not squeeze load-bearing structure into a generic archetype'],
   ['negative prompt is image-specific', 'negative_prompt is image-specific'],
+  ['nonlinear geometry drift is blocked in negative prompt', 'block straightened bands, rectangular panels, uniform grids, equalized zones, and lost boundary lines'],
   ['source blur is not blocked globally', 'Do not put blur, grain, haze, bloom, low resolution'],
   ['soft-source blockers target polish drift', 'over-sharpened face, glossy AI skin, hyper-detailed eyes'],
   ['cleanliness guidance is conditional', 'For genuinely clean/smooth/high-clarity sources'],
@@ -407,6 +454,92 @@ const simulatedCases = [
     ]
   },
   {
+    id: 'high_density_panoramic_skeleton_regression',
+    recreation:
+      'Ultra-wide 16:9 dense panoramic civilization mural with a curved continuous Earth cross-section as the source-defining reconstruction skeleton, a clear luminous guide line following the planet horizon, organic blended terrain zones, and a left-to-right reading flow from cosmic origin through life, civilization, industry, information age, and future exploration. Keep the non-rectangular zone boundaries crisp where the horizon arc and golden timeline line separate layers, while allowing painterly atmospheric blending inside the land, ocean, city, and space regions. Local objects such as planets, dinosaurs, ships, trains, aircraft, computers, rockets, satellites, animals, and Chinese timeline labels fill the scene as secondary details without flattening the image into straight stacked bands. Prioritize the curved global geometry, boundary clarity, adjacent region relationships, density changes, and continuous mural flow over enumerating every small object.',
+    core:
+      'Ultra-wide dense civilization mural with curved Earth cross-section, clear luminous horizon guide line, organic non-rectangular zones, Chinese labels, and continuous left-to-right flow.',
+    negative:
+      'flat straight horizontal bands, uniform rectangular grid, poster redesign with equal panels, blurred horizon boundary, missing golden guide line, merged terrain zones, over-regularized timeline chart, local objects crowding out global structure, translated Chinese labels, invented English labels, missing curved Earth cross-section, hard textbook table layout',
+    minWords: 95,
+    requiredEarlyAnchors: [
+      'Ultra-wide 16:9',
+      'curved continuous Earth cross-section',
+      'source-defining reconstruction skeleton',
+      'clear luminous guide line'
+    ],
+    requiredAnchors: [
+      'organic blended terrain zones',
+      'left-to-right reading flow',
+      'non-rectangular zone boundaries',
+      'crisp',
+      'painterly atmospheric blending inside',
+      'Chinese timeline labels',
+      'secondary details',
+      'without flattening the image into straight stacked bands',
+      'curved global geometry',
+      'boundary clarity',
+      'adjacent region relationships',
+      'density changes'
+    ],
+    requiredNegativeAnchors: [
+      'flat straight horizontal bands',
+      'uniform rectangular grid',
+      'poster redesign with equal panels',
+      'blurred horizon boundary',
+      'missing golden guide line',
+      'merged terrain zones',
+      'over-regularized timeline chart',
+      'local objects crowding out global structure',
+      'translated Chinese labels',
+      'hard textbook table layout'
+    ],
+    forbiddenAnchors: [
+      'maybe',
+      'possibly',
+      'A or B',
+      'should preserve'
+    ]
+  },
+  {
+    id: 'simple_centered_object_no_overconstraint',
+    recreation:
+      'Square clean product-style image of one glossy red ceramic cup centered on a matte off-white surface, simple front view, soft shadow directly beneath the cup, large quiet negative space, smooth curved handle on the right, subtle specular highlight on the glaze, neutral studio-like light, style_index 24 out of 100.',
+    core:
+      'Centered glossy red ceramic cup on off-white surface, square crop, soft shadow, quiet negative space.',
+    negative:
+      'extra cups, complex background, heavy labels, dense layout, multi-region collage, timeline chart, dramatic camera tilt, cluttered props, translated text, grid panels',
+    minWords: 35,
+    maxWords: 70,
+    requiredAnchors: [
+      'one glossy red ceramic cup',
+      'centered',
+      'matte off-white surface',
+      'soft shadow',
+      'negative space',
+      'smooth curved handle',
+      'style_index 24 out of 100'
+    ],
+    forbiddenAnchors: [
+      'multi-region',
+      'z-order',
+      'text_lock',
+      'dense layout',
+      'reconstruction skeleton',
+      'boundary relationship',
+      'detail_budget',
+      'source-defining structure'
+    ],
+    requiredNegativeAnchors: [
+      'extra cups',
+      'complex background',
+      'dense layout',
+      'multi-region collage',
+      'timeline chart',
+      'grid panels'
+    ]
+  },
+  {
     id: 'mirror_selfie_real_person_regression',
     recreation:
       'Square casual bathroom mirror selfie of two adult women standing side by side in front of a sink, both with dark messy high buns, warm tan skin tones with natural texture and visible undertones, East Asian-presenting facial features, oval-to-heart face shapes, dark eyes, soft everyday makeup, slim athletic body proportions. The left woman holds a phone at chest height in a white knotted crop T-shirt and pale pink bikini bottoms with a navel piercing; the right woman brushes her teeth in an oversized white T-shirt lifted at the waist and leopard bikini bottom. Preserve cream tile bathroom, black door, white shower curtain, cluttered counter, mirror specks, direct mirror-camera perspective, and casual phone-photo realism, not a studio fashion shoot.',
@@ -483,6 +616,53 @@ const simulatedCases = [
   }
 ];
 
+const simulatedJsonGeneratorCases = [
+  {
+    id: 'ramen_floating_poster_json_generation_prompt',
+    generationPrompt:
+      'Vertical 9:16 premium Chinese ramen advertising poster with a dark black-brown low-key background, warm golden upper-right hard light, strong chiaroscuro, shallow depth of field, steam haze, dark bokeh, and suspended amber broth splashes. Center a black rough ceramic ramen bowl on a dark wooden table, filled with thick beige-brown tonkotsu broth, red chili oil dots, scallion bits, bamboo shoots, and glossy surface reflections. A tall bundle of pale yellow thin ramen noodles rises vertically from the bowl in tangled strands, gripped at the top by dark brown chopsticks entering diagonally from the right. Keep green scallion rings, white sesame seeds, floating oil droplets, amber broth drops, and steam wisps suspended around the noodle column in layered depth. Place two glossy charred chashu slices floating on the left, a half soft-boiled egg floating on the right with bright orange glossy yolk, a crinkled shiny black nori sheet in the upper right, and dark wood ear mushrooms near the right bowl rim. Preserve large cream Chinese calligraphy on the left reading “浓汤叉烧拉面”, red seal “醇厚鲜香”, small serif “TONKOTSU RAMEN”, vertical copy “汤底醇厚 · 面条劲道 · 叉烧入味”, four bottom circular icon groups with exact Chinese copy, and the lower-right gold stamp “鲜香” with red seal “匠心”. Preserve the poster composite layout, clear text hierarchy, black-gold-warm-brown palette, food gloss, steam glow, rough reflective ceramic bowl, dark wood grain, and suspended ingredient motion.',
+    generationNegativePrompt:
+      'plain ramen bowl closeup, no lifted noodles, static toppings, missing suspended droplets, missing floating oil, missing steam haze, missing chopsticks, missing Chinese calligraphy, translated or unreadable Chinese text, missing bottom icon strip, missing lower-right stamp, white porcelain bowl, bright clean studio lighting, flat catalog food photo, extra people, redesigned menu layout',
+    spatialDynamics:
+      'Central noodle column rises vertically from the broth; right-side chopsticks grip the noodle top; chashu floats left, egg floats right, nori occupies upper right, mushrooms stay near the right rim; droplets, scallion rings, sesame, and steam are suspended in foreground, midground, and background depth layers; text remains locked left, bottom, and lower right.',
+    requiredPromptAnchors: [
+      'Vertical 9:16',
+      'premium Chinese ramen advertising poster',
+      'suspended amber broth splashes',
+      'noodles rises vertically',
+      'chopsticks entering diagonally from the right',
+      'floating oil droplets',
+      'suspended around the noodle column',
+      'chashu slices floating on the left',
+      'egg floating on the right',
+      'large cream Chinese calligraphy',
+      'four bottom circular icon groups',
+      'suspended ingredient motion'
+    ],
+    requiredNegativeAnchors: [
+      'plain ramen bowl closeup',
+      'no lifted noodles',
+      'static toppings',
+      'missing suspended droplets',
+      'missing floating oil',
+      'missing steam haze',
+      'missing Chinese calligraphy',
+      'missing bottom icon strip',
+      'redesigned menu layout'
+    ],
+    requiredSpatialAnchors: [
+      'noodle column rises vertically',
+      'right-side chopsticks',
+      'chashu floats left',
+      'egg floats right',
+      'droplets',
+      'suspended',
+      'depth layers',
+      'text remains locked'
+    ]
+  }
+];
+
 for (const key of topLevelKeys) {
   assert(systemPrompt.includes(key), `system prompt missing output key ${key}`);
   assert(typesSource.includes(stripQuotes(key)), `PromptAnalysis type missing key ${key}`);
@@ -493,6 +673,25 @@ for (const key of jsonPromptKeys) {
   assert(typesSource.includes(stripQuotes(key)), `PromptAnalysis.json_prompt type missing key ${key}`);
 }
 assert(jsonRepairSource.includes("'fidelity_priorities'"), 'parsePromptAnalysis should normalize json_prompt.fidelity_priorities.');
+assert(jsonRepairSource.includes('generationPromptFallback'), 'parsePromptAnalysis should fill json_prompt.generation_prompt from en.prompt when missing.');
+assert(jsonRepairSource.includes('strengthenGenerationPrompt'), 'parsePromptAnalysis should strengthen json_prompt.generation_prompt instead of accepting weak JSON output.');
+assert(jsonRepairSource.includes('collectGenerationLocks'), 'parsePromptAnalysis should compile high-priority JSON evidence into json_prompt.generation_prompt.');
+assert(jsonRepairSource.includes('generation_negative_prompt'), 'parsePromptAnalysis should normalize json_prompt.generation_negative_prompt.');
+assert(jsonRepairSource.includes('strengthenGenerationNegativePrompt'), 'parsePromptAnalysis should strengthen json_prompt.generation_negative_prompt.');
+assert(jsonRepairSource.includes('collectGenerationNegativeLocks'), 'parsePromptAnalysis should compile high-priority JSON evidence into json_prompt.generation_negative_prompt.');
+assert(jsonRepairSource.includes('appendCueDriftBlockers'), 'parsePromptAnalysis should infer generic missing-text, motion, depth, and relationship blockers.');
+assert(jsonRepairSource.includes('wrong material or surface finish'), 'parsePromptAnalysis should infer material drift blockers for JSON negative prompts.');
+assert(jsonRepairSource.includes('straightened boundaries'), 'parsePromptAnalysis should infer boundary drift blockers for JSON negative prompts.');
+assert(jsonRepairSource.includes('buildSpatialDynamicsFallback'), 'parsePromptAnalysis should build json_prompt.spatial_dynamics fallback from visible relationship fields.');
+assert(jsonRepairSource.includes('normalizeObservationUnits'), 'parsePromptAnalysis should normalize json_prompt.observation_units.');
+assert(jsonRepairSource.includes('normalizeReconstructionPriorities'), 'parsePromptAnalysis should normalize json_prompt.reconstruction_priorities.');
+assert(jsonRepairSource.includes('repairJsonText'), 'parsePromptAnalysis should conservatively repair model JSON before failing.');
+assert(jsonRepairSource.includes('quoteUnquotedObjectKeys'), 'parsePromptAnalysis should repair unquoted JSON object keys.');
+assert(jsonRepairSource.includes('stripTrailingCommas'), 'parsePromptAnalysis should repair trailing JSON commas.');
+assert(jsonRepairSource.includes('normalizeSingleQuotedStrings'), 'parsePromptAnalysis should repair single-quoted JSON keys and values.');
+assert(panelSource.includes("'generation_prompt'"), 'panel completeness should require json_prompt.generation_prompt.');
+assert(panelSource.includes("'generation_negative_prompt'"), 'panel completeness should require json_prompt.generation_negative_prompt.');
+assert(panelSource.includes("'spatial_dynamics'"), 'panel completeness should require json_prompt.spatial_dynamics.');
 
 for (const [label, needle] of contractChecks) {
   assert(systemPrompt.includes(needle), `contract check failed: ${label}`);
@@ -506,14 +705,53 @@ assert(!systemPrompt.includes('"ja"'), 'system prompt should not request hidden 
 assert(!systemPrompt.includes('"ja_style_tags"'), 'system prompt should not request hidden Japanese style tags.');
 assert(!systemPrompt.includes('"recreation_prompt"'), 'system prompt should not request a duplicate recreation_prompt field.');
 assert(systemPrompt.length >= 5200, 'system prompt is unexpectedly short for the fusion reconstruction contract.');
-assert(systemPrompt.length <= 11000, 'system prompt is too long; keep the runtime prompt compact enough for API use.');
+assert(systemPrompt.length <= 15500, 'system prompt is too long; keep the runtime prompt compact enough for API use.');
 assert(!panelSource.includes('analysis[tab].prompt}\\n\\n${analysis[tab].analysis'), 'language tab output must not concatenate prompt and analysis.');
 assert(panelSource.includes('return analysis[tab].prompt;'), 'language tab output should display/copy only the prompt text.');
 assert(panelSource.includes('props.onOpenGenerator(siteId, analysis.en.prompt)'), 'generator handoff must use en.prompt as the primary recreation prompt.');
 assert(!panelSource.includes('recreation_prompt'), 'panel should not depend on a duplicate recreation_prompt output field.');
+assert(panelSource.includes('isFilledJsonValue'), 'panel completeness should handle nested json_prompt v2 fields.');
+assert(imageDataSource.includes('ANALYSIS_MAX_IMAGE_SIDE = 3072'), 'analysis image max side should preserve more detail than the old 2200px cap.');
+assert(imageDataSource.includes('if (!unsupportedMime && scale === 1)'), 'supported in-cap images should not be re-encoded before analysis.');
+assert(imageDataSource.includes('chooseAnalysisOutputMime'), 'resized analysis images should preserve useful JPEG/WebP output where possible.');
+assert(packageJsonSource.includes('"test:real-extension": "node scripts/manual-real-extension-test.mjs"'), 'package.json should expose the real-extension test command.');
+assert(packageJsonSource.includes('"check:json-repair": "tsx scripts/check-json-repair.ts"'), 'package.json should expose the JSON repair regression check.');
+assert(packageJsonSource.includes('"test:real-json": "tsx scripts/real-image-json-readiness-audit.ts"'), 'package.json should expose the real JSON readiness audit command.');
+assert(packageJsonSource.includes('"test:real-structure": "tsx scripts/real-image-structural-audit.ts"'), 'package.json should expose the real structural audit command.');
+assert(jsonRepairTestSource.includes('steam-only evidence should not create splash blocker'), 'JSON repair test should guard steam-only overconstraint.');
+assert(jsonRepairTestSource.includes('generation_prompt did not compile high-priority observation evidence'), 'JSON repair test should guard weak generation_prompt repair.');
+assert(jsonRepairTestSource.includes('wrong material or surface finish'), 'JSON repair test should guard material blocker compilation.');
+assert(jsonRepairTestSource.includes('loose JSON repair did not preserve zh.prompt'), 'JSON repair test should guard JavaScript-like model JSON repair.');
+assert(manualRealTestSource.includes('publicSettings'), 'real-extension test should avoid printing raw settings.');
+assert(manualRealTestSource.includes('redactSecrets'), 'real-extension test should redact storage evidence on failure.');
+assert(manualRealTestSource.includes("'[redacted]'"), 'real-extension test should redact API keys in evidence.');
+assert(manualRealTestSource.includes('page_image_pick_real_model_success'), 'real-extension test should cover page image selection.');
+assert(manualRealTestSource.includes('local_file_upload_real_model_success'), 'real-extension test should cover local file upload.');
+assert(manualRealTestSource.includes('json_prompt.generation_prompt too weak'), 'real-extension test should require json_prompt.generation_prompt.');
+assert(manualRealTestSource.includes('json_prompt.generation_prompt weaker than en.prompt'), 'real-extension test should require json_prompt.generation_prompt to be no weaker than en.prompt.');
+assert(manualRealTestSource.includes('json_prompt.generation_negative_prompt too weak'), 'real-extension test should require json_prompt.generation_negative_prompt.');
+assert(manualRealTestSource.includes('json_prompt.spatial_dynamics too weak'), 'real-extension test should require json_prompt.spatial_dynamics.');
+assert(realStructureAuditSource.includes('blocksStraightBoundaryDrift'), 'real structural audit should check straight-boundary drift blockers.');
+assert(realStructureAuditSource.includes('mentionsNonlinearGeometry'), 'real structural audit should check nonlinear source geometry.');
+assert(realStructureAuditSource.includes('ZHIJUAN_STRUCTURAL_AUDIT_FILE'), 'real structural audit should support offline re-parse of prior real model audits.');
+assert(realJsonAuditSource.includes('generation_prompt'), 'real JSON readiness audit should check json_prompt.generation_prompt.');
+assert(realJsonAuditSource.includes('generationPromptWeakerThanEnglish'), 'real JSON readiness audit should fail when json_prompt.generation_prompt is weaker than en.prompt.');
+assert(realJsonAuditSource.includes('spatial_dynamics'), 'real JSON readiness audit should check json_prompt.spatial_dynamics.');
+assert(realJsonAuditSource.includes('ZHIJUAN_JSON_REQUIRED_PROMPT'), 'real JSON readiness audit should support prompt anchor checks.');
+assert(realJsonAuditSource.includes('ZHIJUAN_JSON_FORBIDDEN_PROMPT'), 'real JSON readiness audit should support forbidden prompt anchor checks.');
+assert(realJsonAuditSource.includes('forbiddenPromptAnchorsAbsent'), 'real JSON readiness audit should fail on wrong precise prompt anchors.');
+assert(realJsonAuditSource.includes('parsePromptAnalysis(analysis)'), 'real JSON readiness audit should re-parse existing audit files through current repair logic.');
+assert(installedAcceptanceSource.includes('chrome://extensions'), 'installed extension acceptance doc should tell the user where to refresh the extension.');
+assert(installedAcceptanceSource.includes('schema_version: "reconstruction_v2"'), 'installed extension acceptance doc should verify reconstruction_v2 output.');
+assert(installedAcceptanceSource.includes('no Japanese output block'), 'installed extension acceptance doc should keep the no-hidden-Japanese gate.');
+assert(installedAcceptanceSource.includes('no duplicate `recreation_prompt` output'), 'installed extension acceptance doc should keep the duplicate prompt gate.');
 
 for (const testCase of simulatedCases) {
   checkPromptSample(testCase);
+}
+
+for (const testCase of simulatedJsonGeneratorCases) {
+  checkJsonGeneratorSample(testCase);
 }
 
 if (failures.length) {
@@ -525,13 +763,41 @@ if (failures.length) {
 console.log('prompt goal check passed');
 console.log(`- contract rules: ${contractChecks.length}`);
 console.log(`- simulated fidelity cases: ${simulatedCases.length}`);
+console.log(`- simulated JSON generator-readiness cases: ${simulatedJsonGeneratorCases.length}`);
+
+function checkJsonGeneratorSample(testCase) {
+  const promptWords = wordCount(testCase.generationPrompt);
+  const negativeItems = testCase.generationNegativePrompt.split(',').map((item) => item.trim()).filter(Boolean);
+  const spatialWords = wordCount(testCase.spatialDynamics);
+
+  assert(promptWords >= 95, `${testCase.id}: json_prompt.generation_prompt should be complete, got ${promptWords}`);
+  assert(negativeItems.length >= 8 && negativeItems.length <= 24, `${testCase.id}: json_prompt.generation_negative_prompt needs image-specific blockers, got ${negativeItems.length}.`);
+  assert(spatialWords >= 28, `${testCase.id}: json_prompt.spatial_dynamics should carry motion and z-depth relationships, got ${spatialWords}`);
+  assert(!hasGeneratorSyntax(testCase.generationPrompt), `${testCase.id}: json_prompt.generation_prompt contains generator-specific syntax.`);
+  assert(!hasGeneratorSyntax(testCase.generationNegativePrompt), `${testCase.id}: json_prompt.generation_negative_prompt contains generator-specific syntax.`);
+  assert(!hasPromptLabels(testCase.generationPrompt), `${testCase.id}: json_prompt.generation_prompt contains section labels.`);
+  assert(!hasPromptReasoning(testCase.generationPrompt), `${testCase.id}: json_prompt.generation_prompt contains reasoning or uncertainty wording.`);
+
+  for (const anchor of testCase.requiredPromptAnchors || []) {
+    assert(includesInsensitive(testCase.generationPrompt, anchor), `${testCase.id}: json_prompt.generation_prompt missing anchor "${anchor}"`);
+  }
+  for (const anchor of testCase.requiredNegativeAnchors || []) {
+    assert(includesInsensitive(testCase.generationNegativePrompt, anchor), `${testCase.id}: json_prompt.generation_negative_prompt missing blocker "${anchor}"`);
+  }
+  for (const anchor of testCase.requiredSpatialAnchors || []) {
+    assert(includesInsensitive(testCase.spatialDynamics, anchor), `${testCase.id}: json_prompt.spatial_dynamics missing relationship "${anchor}"`);
+  }
+}
 
 function checkPromptSample(testCase) {
   const recreationWords = wordCount(testCase.recreation);
   const coreWords = wordCount(testCase.core);
   const negativeItems = testCase.negative.split(',').map((item) => item.trim()).filter(Boolean);
+  const minWords = testCase.minWords ?? 70;
+  const maxWords = testCase.maxWords ?? Number.POSITIVE_INFINITY;
 
-  assert(recreationWords >= 70, `${testCase.id}: en.prompt should be complete, got ${recreationWords}`);
+  assert(recreationWords >= minWords, `${testCase.id}: en.prompt should be complete, got ${recreationWords}`);
+  assert(recreationWords <= maxWords, `${testCase.id}: en.prompt should not be over-expanded, got ${recreationWords}`);
   assert(coreWords >= 12 && coreWords <= 45, `${testCase.id}: prompt_core should stay compressed, got ${coreWords}`);
   assert(negativeItems.length >= 6 && negativeItems.length <= 24, `${testCase.id}: negative_prompt needs image-specific drift blockers, got ${negativeItems.length}.`);
   assert(!hasGeneratorSyntax(testCase.recreation), `${testCase.id}: en.prompt contains generator-specific syntax.`);

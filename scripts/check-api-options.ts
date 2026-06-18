@@ -8,14 +8,16 @@ function hasOwn(object: object, key: string): boolean {
 assert.deepEqual(buildAnalysisRequestOptions('gpt-4o'), {
   model: 'gpt-4o',
   temperature: 0.18,
-  max_tokens: 12288
+  max_tokens: 12288,
+  image_detail: 'high'
 });
 
 const gpt5Options = buildAnalysisRequestOptions('gpt-5.5');
 assert.deepEqual(gpt5Options, {
   model: 'gpt-5.5',
   max_completion_tokens: 12288,
-  reasoning_effort: 'medium'
+  reasoning_effort: 'medium',
+  image_detail: 'high'
 });
 assert.equal(hasOwn(gpt5Options, 'max_tokens'), false);
 assert.equal(hasOwn(gpt5Options, 'temperature'), false);
@@ -23,13 +25,15 @@ assert.equal(hasOwn(gpt5Options, 'temperature'), false);
 assert.deepEqual(buildAnalysisRequestOptions('openai/o4-mini'), {
   model: 'openai/o4-mini',
   max_completion_tokens: 12288,
-  reasoning_effort: 'medium'
+  reasoning_effort: 'medium',
+  image_detail: 'high'
 });
 
 assert.deepEqual(buildAnalysisRequestOptions('vision-reasoning'), {
   model: 'vision-reasoning',
   max_completion_tokens: 12288,
-  reasoning_effort: 'medium'
+  reasoning_effort: 'medium',
+  image_detail: 'high'
 });
 
 const fallbackOptions = buildAnalysisRequestOptions('gpt-4o');
@@ -43,6 +47,7 @@ assert.equal(
 assert.deepEqual(fallbackOptions, {
   model: 'gpt-4o',
   temperature: 0.18,
+  image_detail: 'high',
   max_completion_tokens: 12288
 });
 
@@ -52,6 +57,7 @@ assert.equal(
 );
 assert.deepEqual(fallbackOptions, {
   model: 'gpt-4o',
+  image_detail: 'high',
   max_completion_tokens: 12288
 });
 assert.equal(
@@ -65,6 +71,16 @@ assert.equal(
     reasoningFallbackOptions,
     "Unsupported parameter: 'reasoning_effort' is not supported with this model."
   ),
+  true
+);
+assert.deepEqual(reasoningFallbackOptions, {
+  model: 'o4-mini',
+  image_detail: 'high',
+  max_completion_tokens: 12288
+});
+
+assert.equal(
+  applyUnsupportedParameterFallback(reasoningFallbackOptions, "Unsupported parameter: 'image_url.detail' is not supported with this model."),
   true
 );
 assert.deepEqual(reasoningFallbackOptions, {

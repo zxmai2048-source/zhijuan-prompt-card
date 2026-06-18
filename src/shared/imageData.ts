@@ -1,3 +1,5 @@
+const ANALYSIS_MAX_IMAGE_SIDE = 3072;
+
 export async function urlToDataUrl(url: string, signal?: AbortSignal): Promise<string> {
   throwIfAborted(signal);
   if (url.startsWith('data:')) return url;
@@ -9,14 +11,14 @@ export async function urlToDataUrl(url: string, signal?: AbortSignal): Promise<s
 
 export async function fileToDataUrl(file: File): Promise<string> {
   if (!isImageFile(file)) throw new Error('Only image files are supported.');
-  return resizeDataUrl(await blobToDataUrl(file));
+  return resizeDataUrl(await blobToDataUrl(file), ANALYSIS_MAX_IMAGE_SIDE);
 }
 
 export function isImageFile(file: File): boolean {
   return isSupportedOrConvertibleImageType(file.type) || /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(file.name);
 }
 
-export async function resizeDataUrl(input: string, maxSide = 2200, quality = 0.9, signal?: AbortSignal): Promise<string> {
+export async function resizeDataUrl(input: string, maxSide = ANALYSIS_MAX_IMAGE_SIDE, quality = 0.92, signal?: AbortSignal): Promise<string> {
   throwIfAborted(signal);
   const { mime } = dataUrlToMimeAndBase64(input);
   const unsupportedMime = !isApiSupportedImageMime(mime);
@@ -35,11 +37,16 @@ export async function resizeDataUrl(input: string, maxSide = 2200, quality = 0.9
   }
   throwIfAborted(signal);
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-  const normalizedScale = unsupportedMime ? 1 : scale;
-  const width = Math.max(1, Math.round(bitmap.width * normalizedScale));
-  const height = Math.max(1, Math.round(bitmap.height * normalizedScale));
+  if (!unsupportedMime && scale === 1) {
+    bitmap.close?.();
+    return input;
+  }
+
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const outputMime = chooseAnalysisOutputMime(mime);
   try {
-    const output = await drawBitmapToDataUrl(bitmap, width, height, 'image/png', quality);
+    const output = await drawBitmapToDataUrl(bitmap, width, height, outputMime, quality);
     return output;
   } finally {
     bitmap.close?.();
@@ -86,6 +93,12 @@ export function isApiSupportedImageMime(mime: string): boolean {
 
 function isSupportedOrConvertibleImageType(mime: string): boolean {
   return [...['image/avif', 'image/bmp'], 'image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mime.toLowerCase());
+}
+
+function chooseAnalysisOutputMime(mime: string): string {
+  const normalized = mime.toLowerCase();
+  if (normalized === 'image/jpeg' || normalized === 'image/webp') return normalized;
+  return 'image/png';
 }
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {

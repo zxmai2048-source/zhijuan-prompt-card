@@ -369,6 +369,11 @@ function makeAnalysis(index) {
     zh_style_tags: ['历史', '缩略图'],
     en_style_tags: ['history', 'thumbnail'],
     json_prompt: {
+      schema_version: 'reconstruction_v2',
+      summary: `Visual history smoke ${index + 1} card with readable thumbnail and copyable prompt preview`,
+      generation_prompt: prompt,
+      generation_negative_prompt: 'broken image wall, cropped strip, missing placeholder',
+      spatial_dynamics: 'Static extension history card with thumbnail, prompt preview, status controls, and compact vertical reading order.',
       subject: `Visual history smoke ${index + 1}`,
       action_pose: 'static UI record',
       details_appearance: 'thumbnail, status, prompt summary',
@@ -381,6 +386,36 @@ function makeAnalysis(index) {
       aspect_ratio: 'mixed',
       quality_modifiers: ['readable', 'stable'],
       fidelity_priorities: ['history card priority 80 of 100 - keep thumbnail and prompt preview readable'],
+      global_fingerprint: {
+        style_index: 12,
+        density: 'medium UI list',
+        spatial_flow: 'thumbnail-led history card with prompt preview and status metadata',
+        optical_finish: ['direct UI capture'],
+        render_finish: ['browser extension interface'],
+        palette: ['#0F172A charcoal - UI shell', '#7BBF9A green - status accent']
+      },
+      observation_units: [
+        {
+          id: 'history_card',
+          kind: 'layout_flow',
+          priority: 80,
+          prompt: 'keep the history thumbnail, prompt preview, and status controls readable inside a stable extension card',
+          evidence: 'history card UI fixture',
+          location: 'history panel',
+          must_preserve: ['thumbnail preview', 'prompt preview', 'card status'],
+          avoid_drift: ['cropped strip', 'missing image wall', 'unreadable prompt text']
+        }
+      ],
+      text_elements: [],
+      reconstruction_priorities: [
+        {
+          cue: 'history card readability priority 80 of 100',
+          priority: 80,
+          tradeoff: 'readable UI card outranks decorative layout',
+          compile_to_en_prompt: true,
+          risk_if_missing: 'history cards become cropped or unreadable'
+        }
+      ],
       likely_generation_intent: 'validation'
     },
     prompt_core: 'visual history smoke',
