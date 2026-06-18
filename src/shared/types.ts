@@ -1,4 +1,4 @@
-export type InterfaceLanguage = 'zh' | 'en' | 'ja';
+export type InterfaceLanguage = 'zh' | 'en';
 
 export type GeneratorSite = 'chatgpt' | 'codex' | 'jimeng' | 'gemini' | 'midjourney' | 'lovart';
 
@@ -17,11 +17,14 @@ export interface AppSettings {
 export interface PromptAnalysis {
   zh: { prompt: string; analysis: string };
   en: { prompt: string; analysis: string };
-  ja: { prompt: string; analysis: string };
   zh_style_tags: string[];
   en_style_tags: string[];
-  ja_style_tags: string[];
   json_prompt: {
+    schema_version: string;
+    summary: string;
+    generation_prompt: string;
+    generation_negative_prompt: string;
+    spatial_dynamics: string;
     subject: string;
     action_pose: string;
     details_appearance: string;
@@ -33,9 +36,43 @@ export interface PromptAnalysis {
     materials: string[];
     aspect_ratio: string;
     quality_modifiers: string[];
+    fidelity_priorities: string[];
+    global_fingerprint: {
+      style_index: number;
+      density: string;
+      spatial_flow: string;
+      optical_finish: string[];
+      render_finish: string[];
+      palette: string[];
+    };
+    observation_units: Array<{
+      id: string;
+      kind: string;
+      priority: number;
+      prompt: string;
+      evidence: string;
+      location: string;
+      must_preserve: string[];
+      avoid_drift: string[];
+    }>;
+    text_elements: Array<{
+      content: string;
+      language: string;
+      role: string;
+      location: string;
+      typography: string;
+      legibility: string;
+      priority: number;
+    }>;
+    reconstruction_priorities: Array<{
+      cue: string;
+      priority: number;
+      tradeoff: string;
+      compile_to_en_prompt: boolean;
+      risk_if_missing: string;
+    }>;
     likely_generation_intent: string;
   };
-  recreation_prompt: string;
   prompt_core: string;
   negative_prompt: string;
 }

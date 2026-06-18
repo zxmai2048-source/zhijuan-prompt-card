@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, HISTORY_LIMIT, STORAGE_KEYS } from './defaults';
-import type { AppSettings, HistoryEntry, PromptAnalysis } from './types';
+import type { AppSettings, HistoryEntry, InterfaceLanguage, PromptAnalysis } from './types';
 
 type StorageRecord = Record<string, unknown>;
 
@@ -152,7 +152,10 @@ function estimateAsciiBytes(value: string): number {
 export function buildHistoryTitle(analysis?: PromptAnalysis, fallback = 'Untitled image'): string {
   const subject = analysis?.json_prompt?.subject?.trim();
   if (subject) return truncate(subject, 96);
-  const prompt = analysis?.en?.prompt?.trim();
+  const summary = analysis?.json_prompt?.summary?.trim();
+  if (summary) return truncate(summary, 96);
+  const legacyAnalysis = analysis as (PromptAnalysis & { recreation_prompt?: string }) | undefined;
+  const prompt = legacyAnalysis?.recreation_prompt?.trim() || analysis?.en?.prompt?.trim() || analysis?.zh?.prompt?.trim();
   if (prompt) return truncate(prompt, 72);
   return fallback;
 }
@@ -165,10 +168,14 @@ function normalizeSettings(input?: Partial<AppSettings>): AppSettings {
     baseUrl: input?.baseUrl?.trim() || DEFAULT_SETTINGS.baseUrl,
     apiKey: input?.apiKey ?? DEFAULT_SETTINGS.apiKey,
     model: input?.model?.trim() || DEFAULT_SETTINGS.model,
-    interfaceLanguage: input?.interfaceLanguage || DEFAULT_SETTINGS.interfaceLanguage,
+    interfaceLanguage: normalizeInterfaceLanguage(input?.interfaceLanguage ?? DEFAULT_SETTINGS.interfaceLanguage),
     defaultGeneratorSite: input?.defaultGeneratorSite || DEFAULT_SETTINGS.defaultGeneratorSite,
     persistentFloatingButton: input?.persistentFloatingButton ?? DEFAULT_SETTINGS.persistentFloatingButton
   };
+}
+
+function normalizeInterfaceLanguage(language: unknown): InterfaceLanguage {
+  return language === 'zh' ? 'zh' : 'en';
 }
 
 function createId(): string {

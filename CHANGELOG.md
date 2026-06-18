@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.3.2
+
+**English**
+
+- Makes the English result the primary copy-ready recreation prompt, with length scaling to the image instead of a fixed short cap.
+- Removes redundant hidden language output and duplicate prompt surfaces from new model responses while keeping Chinese/English prompts, structured JSON, negative prompt, and style tags.
+- Improves structured JSON output with a copy-ready generation prompt, matching negative prompt, and spatial dynamics summary so source-defining softness, texture, compression, clarity, layout relationships, floating or suspended motion, and drift risks survive when the JSON tab is copied into generators.
+- Strengthens JSON negative prompts by compiling high-priority drift risks, visible text loss, missing motion, depth collapse, material drift, and boundary drift from the structured evidence layer instead of trusting item count alone.
+- Improves result parsing resilience when compatible models return JavaScript-like JSON formatting such as comments, trailing commas, single-quoted strings, or unquoted object keys.
+- Better captures dense layouts, text placement, optical finish, material behavior, and structure-vs-detail tradeoffs for recreation.
+- Preserves more source image detail before analysis, especially for dense UI, poster, and text-heavy images.
+- Simplifies the result UI so users have one obvious primary prompt to copy and send to generators.
+- Keeps old history readable for legacy records created by earlier output formats.
+- Adds real timeline-image verification for organic continuous layouts versus stacked rectangular infographic bands, plus real ramen-poster JSON readiness verification for lifted noodles, suspended ingredients, Chinese text hierarchy, and splash-motion blockers.
+
+**中文**
+
+- 英文结果作为主要可复制复刻提示词，长度按图片复原需要扩展，不再受固定短词数限制。
+- 新模型输出移除冗余隐藏语言输出和重复提示词入口，同时保留中英文 Prompt、结构化 JSON、反向词和风格标签。
+- 改进结构化 JSON 输出，增加可复制生成提示词、匹配反向词和空间动势摘要，让原图中的柔焦、质地、压缩感、清晰度、版式关系、悬浮运动和漂移风险在复制 JSON 到生成器时也不容易丢失。
+- 强化 JSON 反向词：从结构化证据层提取高优先级漂移风险、文字缺失、动势缺失、景深坍塌、材质漂移和边界漂移，而不是只看反向词数量是否足够。
+- 提升兼容模型返回类 JSON 时的解析韧性，可兜底处理注释、尾逗号、单引号字符串和未加引号的对象 key。
+- 更好描述密集版式、文字位置、光学质感、材质行为，以及结构与细节之间的取舍关系。
+- 分析前更好保留源图细节，尤其面向密集 UI、海报和文字较多的图片。
+- 简化结果 UI，避免出现多个看似主提示词的复制目标；生成器跳转统一使用主英文结果。
+- 旧历史记录仍可读取，兼容早期输出格式生成的数据。
+- 增加真实时间线图片验证，覆盖自然连续版式与矩形分栏信息图的差异；增加真实拉面海报 JSON 可生成性验证，覆盖拉起面条、悬浮食材、中文文字层级和飞溅动势 blocker。
+
 ## 0.3.1
 
 **English**

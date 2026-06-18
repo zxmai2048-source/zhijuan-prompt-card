@@ -69,17 +69,20 @@
           analysis: '画面依靠黑色磨砂玻璃、湖绿色状态和明确的源图/提示词分区建立高级工具感。'
         },
         en: {
-          prompt: 'A black frosted-glass Chrome extension interface showing a compact image-to-prompt result lens: selected image thumbnail and prompt quality at the top, a dominant generated prompt output area below, and a left flow rail for source, reading, prompt, and handoff. The visual system uses matte graphite, tactile inner borders, and one muted lake-green accent.',
+          prompt: 'A premium black frosted-glass Chrome extension screenshot showing a compact image-to-prompt result lens, selected image preview, prompt output area, muted lake-green accent, inner refraction borders, copy actions, generator handoff buttons, crisp typography, subtle shadows, and a polished local-first creative tool atmosphere.',
           analysis: 'The image uses frosted glass, lake-green state feedback, and clear source/prompt separation to create a premium daily-use tool.'
-        },
-        ja: {
-          prompt: '黒いフロストガラス質感の Chrome 拡張 UI。選択画像のサムネイル、品質表示、生成プロンプト出力欄、左側の工程レールを備えたコンパクトな結果レンズ。',
-          analysis: 'フロストガラス、湖緑の状態表示、明確な出力領域で高級なツール感を作っている。'
         },
         zh_style_tags: ['黑色磨砂', '湖绿色强调', '结果镜头', '源图预览'],
         en_style_tags: ['black frosted glass', 'lake green accent', 'result lens', 'source preview'],
-        ja_style_tags: ['暗色高級', '橙色アクセント', 'ツールUI', '柔らかい反射'],
         json_prompt: {
+          schema_version: 'reconstruction_v2',
+          summary: 'Premium black frosted-glass Chrome extension result lens with source preview and copy-ready prompt output',
+          generation_prompt:
+            'A premium black frosted-glass Chrome extension screenshot showing a compact image-to-prompt result lens, selected image preview, prompt output area, muted lake-green accent, inner refraction borders, copy actions, generator handoff buttons, crisp typography, subtle shadows, and a polished local-first creative tool atmosphere.',
+          generation_negative_prompt:
+            'blurry text, cluttered layout, low contrast, harsh glow, broken UI, random icons, noisy background',
+          spatial_dynamics:
+            'Static floating extension panel; source preview sits above the prompt output; copy controls and generator handoff buttons stay inside one compact result lens.',
           subject: 'Compact image-to-prompt result lens interface',
           action_pose: 'Selected image preview and generated prompt displayed together',
           details_appearance: 'Black frosted glass, left flow rail, source thumbnail, prompt output, copy actions, generator buttons',
@@ -91,10 +94,39 @@
           materials: ['frosted glass', 'inner border', 'digital UI'],
           aspect_ratio: '4:5',
           quality_modifiers: ['premium UI', 'result lens', 'sharp text', 'soft shadow'],
+          fidelity_priorities: ['copy-ready prompt priority 86 of 100 - keep the output area obvious', 'compact UI priority 74 of 100 - avoid adding extra result panels'],
+          global_fingerprint: {
+            style_index: 36,
+            density: 'compact tool UI',
+            spatial_flow: 'source preview above prompt output inside one result lens',
+            optical_finish: ['crisp UI text', 'soft shadow'],
+            render_finish: ['frosted glass interface', 'Chrome extension screenshot'],
+            palette: ['#111817 matte charcoal - shell', '#7FAE91 lake green - accent', '#F4FFF8 soft ivory - text']
+          },
+          observation_units: [
+            {
+              id: 'result_lens',
+              kind: 'layout_flow',
+              priority: 86,
+              prompt: 'keep a compact source preview and copy-ready prompt output inside the same black frosted-glass result lens',
+              evidence: 'visible extension panel composition',
+              location: 'center panel',
+              must_preserve: ['source preview', 'prompt output', 'copy actions'],
+              avoid_drift: ['extra result panels', 'marketing landing page layout']
+            }
+          ],
+          text_elements: [],
+          reconstruction_priorities: [
+            {
+              cue: 'copy-ready prompt output priority 86 of 100',
+              priority: 86,
+              tradeoff: 'tool usability outranks decorative chrome',
+              compile_to_en_prompt: true,
+              risk_if_missing: 'the output area becomes decorative and hard to copy'
+            }
+          ],
           likely_generation_intent: 'Show a refined local-first image prompt extension'
         },
-        recreation_prompt:
-          'A premium black frosted-glass Chrome extension screenshot showing a compact image-to-prompt result lens, selected image preview, prompt output area, muted lake-green accent, inner refraction borders, copy actions, generator handoff buttons, crisp typography, subtle shadows, and a polished local-first creative tool atmosphere.',
         prompt_core:
           'Premium black frosted-glass result lens, selected image preview, prompt output, lake-green accent, local-first creative tool UI.',
         negative_prompt: 'blurry text, cluttered layout, low contrast, harsh glow, broken UI, random icons, noisy background'

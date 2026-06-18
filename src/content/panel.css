@@ -1536,7 +1536,6 @@
 .zpc-surface,
 .zpc-target-card,
 .zpc-prompt-output,
-.zpc-core,
 .zpc-toast-inline {
   position: relative;
   overflow: hidden;
@@ -1946,25 +1945,6 @@
   white-space: pre-wrap;
   color: #eef5ef;
   font: 10.8px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.zpc-core {
-  padding: 11px;
-  background: var(--zpc-glass-strong);
-}
-
-.zpc-core-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.zpc-core p {
-  margin-top: 8px;
-  color: #edf2ee;
-  font-size: 11px;
-  line-height: 1.58;
 }
 
 .zpc-actions {

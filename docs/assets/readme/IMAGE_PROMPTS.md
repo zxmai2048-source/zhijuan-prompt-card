@@ -28,7 +28,7 @@ Curated draft ad assets were used only as visual quality references. They are no
 - 本地优先 local-first。
 - BYOK / user-configured endpoint。
 - 上传图片、右键网页图片、框选页面区域。
-- 中文 / 英文 / JSON / Recreation / Negative Prompt。
+- 中文 / 英文 / JSON / Negative Prompt / Style Tags；英文 Prompt 是主复刻提示词。
 - Visual History、local thumbnails、quick history。
 - 无登录、无 credits、无 telemetry。
 
@@ -73,7 +73,7 @@ Text must be rendered directly by ImageGen. Use only these exact visible bilingu
 "Structured Prompts / 结构化 Prompt"
 "Copy & Create / 复制并创作"
 
-Product truth: local-first does not mean offline-only. Selected images go only to the user's configured OpenAI-compatible vision endpoint. Local thumbnails and prompt history stay in browser local storage. Outputs include Chinese Prompt, English Prompt, Japanese Prompt, JSON Prompt, Recreation Prompt, Negative Prompt, and Style Tags.
+Product truth: local-first does not mean offline-only. Selected images go only to the user's configured OpenAI-compatible vision endpoint. Local thumbnails and prompt history stay in browser local storage. Outputs include Chinese Prompt, English Prompt as the primary recreation prompt, JSON Prompt, Negative Prompt, and Style Tags.
 
 Avoid fake URLs, account paths, API keys, model values, license text, official platform logos, extra invented words, orange old SVG style, cyberpunk neon, and dense tiny paragraphs.
 ```
@@ -96,13 +96,13 @@ Text must be rendered directly by ImageGen. Use only these exact visible bilingu
 "Copy & create / 复制并创作"
 "CN / 中文"
 "EN / 英文"
-"JP / 日文"
+"Style / 风格"
 "JSON / 结构化"
-"Recreate / 重绘"
+"EN Recreate / 英文复刻"
 "Negative / 负面词"
 "History / 历史"
 
-Product truth: users can upload local images, right-click webpage images, or crop page regions. The selected image is sent to the user's configured OpenAI-compatible vision endpoint. Outputs include Chinese Prompt, English Prompt, Japanese Prompt, JSON Prompt, Recreation Prompt, Negative Prompt, and Style Tags. Visual history is local.
+Product truth: users can upload local images, right-click webpage images, or crop page regions. The selected image is sent to the user's configured OpenAI-compatible vision endpoint. Outputs include Chinese Prompt, English Prompt as the primary recreation prompt, JSON Prompt, Negative Prompt, and Style Tags. Visual history is local.
 
 Avoid fake URLs, account paths, API keys, model values, license text, official platform logos, extra invented words, orange old SVG style, cyberpunk neon, and dense tiny paragraphs.
 ```
