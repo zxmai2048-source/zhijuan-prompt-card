@@ -12,12 +12,12 @@
 - URL check: pass, `npm run check:url`.
 - Diff whitespace: pass, `git diff --check`.
 - Build: pass, `npm run build`.
-- Bilibili E2E: pass, `npm run e2e:bilibili`, `tmp/browser-tests/pw-e2e-summary-1781790564919.json`.
-- Visual history smoke: pass, `npm run smoke:history`, `tmp/browser-tests/pw-visual-history-summary-1781790577161.json`.
+- Bilibili E2E: pass, `npm run e2e:bilibili`, `tmp/browser-tests/pw-e2e-summary-1781797549928.json`.
+- Visual history smoke: pass, `npm run smoke:history`, `tmp/browser-tests/pw-visual-history-summary-1781797507995.json`.
 - Test package: pass, `npm run release:package`.
 - Release scan: pass, `npm run release:check`.
 - Package output: `release/zhijuan-prompt-card-0.3.2.zip`.
-- Package sha256: `985af36d5baffab7e5590e7b76fd9c21942645e376f8e12971c58a717e0634f6`.
+- Package sha256: `6e20c9fa64b17b1c0f5c1efbe4cb0ec2e909e33b376f8238df8532f9836c36f8`.
 - Dist manifest: pass, manifest `version` is `0.3.2`, `version_name` is `0.3.2 Prompt Output`.
 - Zip manifest: pass, manifest `version` is `0.3.2`, `version_name` is `0.3.2 Prompt Output`.
 - Prior BridgeDeck model smoke: pass, `gpt-5.5` through `http://127.0.0.1:8876/v1`, captured before the `json_prompt.fidelity_priorities` schema addition.
