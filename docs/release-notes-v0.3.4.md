@@ -1,6 +1,6 @@
-# v0.3.4 GitHub Release Draft
+# v0.3.4 GitHub Release Notes
 
-Status: local release candidate only. Do not publish this release until user-installed refreshed-extension acceptance passes.
+Status: ready to publish after local gates and user-installed refreshed-extension acceptance passed.
 
 - Tag: `v0.3.4`
 - Title: `v0.3.4`
@@ -23,7 +23,7 @@ This release improves image-to-prompt-to-image reconstruction fidelity for gener
 
 Privacy and network behavior are unchanged: the extension remains local-first and BYOK; selected images are sent only to the user-configured endpoint. This release adds no telemetry, analytics, payment lock, or forced cloud dependency.
 
-Verification before publication:
+Verification for this release:
 
 - `npm run check:storage`
 - `npm run check:json-repair`
@@ -37,7 +37,7 @@ Verification before publication:
 - `npm run test:real-extension`
 - `npm run release:package`
 - `npm run release:check`
-- User-installed refreshed-extension acceptance: pass before publishing
+- User-installed refreshed-extension acceptance: passed
 
 ### 中文
 
@@ -53,7 +53,7 @@ Verification before publication:
 
 隐私和网络行为没有变化：插件仍是 local-first 和 BYOK；被选择的图片只发送到用户自己配置的端点。本版本没有新增遥测、分析、付费锁或强制云依赖。
 
-发布前验证：
+本版本验证：
 
 - `npm run check:storage`
 - `npm run check:json-repair`
@@ -67,4 +67,4 @@ Verification before publication:
 - `npm run test:real-extension`
 - `npm run release:package`
 - `npm run release:check`
-- 用户安装版刷新验收：发布前必须通过
+- 用户安装版刷新验收：已通过
