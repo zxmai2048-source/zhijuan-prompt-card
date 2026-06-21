@@ -1,7 +1,7 @@
 import { type CSSProperties, type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnalysisPhase, GeneratorSite, HistoryEntry, ImageTarget, InterfaceLanguage, PanelTab, PromptAnalysis } from '../shared/types';
 import { GENERATOR_SITES } from '../shared/generators';
-import { canShowHistoryImage, getHistoryImageKey, getHistoryImageSrc, getHistoryPreviewText, getHistoryPrompt, getHistoryStatusLabel } from '../shared/historyDisplay';
+import { canShowHistoryImage, getGeneratorPrompt, getHistoryImageKey, getHistoryImageSrc, getHistoryPreviewText, getHistoryPrompt, getHistoryStatusLabel, stringifyGeneratorJsonPrompt } from '../shared/historyDisplay';
 import { checkLatestRelease, createIdleUpdateInfo } from '../shared/updates';
 import type { UpdateInfo } from '../shared/updates';
 
@@ -91,8 +91,9 @@ const copy = {
     },
     failed: 'Analysis failed',
     output: 'Prompt output',
+    outputJson: 'JSON prompt',
     copy: 'Copy',
-    copyJson: 'Copy JSON',
+    copyJson: 'Copy JSON prompt',
     copyNegative: 'Copy Negative',
     regenerate: 'Regenerate',
     cancel: 'Stop',
@@ -124,7 +125,7 @@ const copy = {
     settings: 'Settings',
     language: 'Language',
     promptCopied: 'Prompt copied',
-    jsonCopied: 'JSON copied',
+    jsonCopied: 'JSON prompt copied',
     negativeCopied: 'Negative copied',
     updateAvailable: 'New version available',
     updateCta: 'View update notes'
@@ -168,8 +169,9 @@ const copy = {
     },
     failed: '识别失败',
     output: '提示词输出',
+    outputJson: 'JSON 提示词',
     copy: '复制',
-    copyJson: '复制 JSON',
+    copyJson: '复制 JSON 提示词',
     copyNegative: '复制反向词',
     regenerate: '重新识别',
     cancel: '终止',
@@ -201,7 +203,7 @@ const copy = {
     settings: '设置',
     language: '语言',
     promptCopied: '已复制提示词',
-    jsonCopied: '已复制 JSON',
+    jsonCopied: '已复制 JSON 提示词',
     negativeCopied: '已复制反向词',
     updateAvailable: '发现新版本',
     updateCta: '查看更新说明'
@@ -1235,6 +1237,7 @@ function ResultBlock(
   const { labels } = props;
   const [tab, setTab] = props.activeTab;
   const tabText = getTabText(analysis, tab);
+  const generatorPrompt = getGeneratorPrompt(analysis);
   const entryId = props.state.entry?.id;
   const favorite = Boolean(props.state.entry?.favorite);
   const completeness = getOutputCompleteness(analysis, props.uiLanguage);
@@ -1254,7 +1257,7 @@ function ResultBlock(
       <div className="zpc-prompt-output">
         <div className="zpc-result-head">
           <div>
-            <span>{props.labels.output}</span>
+            <span>{getOutputLabelForTab(tab, props.labels)}</span>
             <strong>{props.labels.outputCompleteness}: {completeness.label}</strong>
             {completeness.missing.length ? <small>{props.labels.missingPrefix}: {completeness.missing.join(', ')}</small> : null}
           </div>
@@ -1279,7 +1282,7 @@ function ResultBlock(
 
       <div className="zpc-generator-grid">
         {(Object.keys(GENERATOR_SITES) as GeneratorSite[]).map((siteId) => (
-          <button type="button" key={siteId} onClick={() => props.onOpenGenerator(siteId, analysis.en.prompt)}>
+          <button type="button" key={siteId} onClick={() => props.onOpenGenerator(siteId, generatorPrompt)}>
             {labels.openIn} {GENERATOR_SITES[siteId].label}
           </button>
         ))}
@@ -1298,8 +1301,9 @@ function usePreferredTab(analysis: PromptAnalysis | undefined, language: UiLangu
 }
 
 function getTabText(analysis: PromptAnalysis, tab: PanelTab): string {
-  if (tab === 'json') return JSON.stringify(analysis.json_prompt, null, 2);
+  if (tab === 'json') return stringifyGeneratorJsonPrompt(analysis);
   if (tab === 'negative') return analysis.negative_prompt;
+  if (tab === 'en') return getGeneratorPrompt(analysis);
   return analysis[tab].prompt;
 }
 
@@ -1437,6 +1441,10 @@ function getCopyLabelForTab(tab: PanelTab, labels: (typeof copy)[UiLanguage]): s
   if (tab === 'json') return labels.copyJson;
   if (tab === 'negative') return labels.copyNegative;
   return labels.copy;
+}
+
+function getOutputLabelForTab(tab: PanelTab, labels: (typeof copy)[UiLanguage]): string {
+  return tab === 'json' ? labels.outputJson : labels.output;
 }
 
 function getCopyNoticeForTab(tab: PanelTab, labels: (typeof copy)[UiLanguage]): string {

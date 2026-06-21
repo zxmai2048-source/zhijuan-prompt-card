@@ -6,6 +6,8 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const reversePromptPath = join(root, 'src/shared/reversePrompt.ts');
 const typesPath = join(root, 'src/shared/types.ts');
 const panelPath = join(root, 'src/content/panel.tsx');
+const popupHistoryPath = join(root, 'src/popup/HistoryView.tsx');
+const historyDisplayPath = join(root, 'src/shared/historyDisplay.ts');
 const jsonRepairPath = join(root, 'src/shared/jsonRepair.ts');
 const imageDataPath = join(root, 'src/shared/imageData.ts');
 const packageJsonPath = join(root, 'package.json');
@@ -18,6 +20,8 @@ const installedAcceptancePath = join(root, 'docs/installed-extension-acceptance.
 const reversePromptSource = readFileSync(reversePromptPath, 'utf8');
 const typesSource = readFileSync(typesPath, 'utf8');
 const panelSource = readFileSync(panelPath, 'utf8');
+const popupHistorySource = readFileSync(popupHistoryPath, 'utf8');
+const historyDisplaySource = readFileSync(historyDisplayPath, 'utf8');
 const jsonRepairSource = readFileSync(jsonRepairPath, 'utf8');
 const imageDataSource = readFileSync(imageDataPath, 'utf8');
 const packageJsonSource = readFileSync(packageJsonPath, 'utf8');
@@ -92,8 +96,8 @@ const contractChecks = [
   ['style_index retained', 'style_index means visual stylization intensity'],
   ['camera language remains cue-only', 'visual reconstruction cues, not factual metadata'],
   ['HEX color palette retained', 'approximate HEX colors with color name and visual role'],
-  ['JSON must not drop key facts', 'do not remove load-bearing facts to make them short'],
-  ['JSON copy-ready generation layer retained', 'JSON may be copied directly into generators'],
+  ['JSON must not drop key facts', 'keep load-bearing facts'],
+  ['JSON generation field is copy-ready', 'generation_prompt may be copied directly into generators'],
   ['JSON generation prompt is continuous', 'generation_prompt must be a continuous generation-ready paragraph'],
   ['JSON generation prompt is strongest input', 'strongest high-fidelity generation input'],
   ['JSON generation prompt compiles evidence', 'compiling all source-defining observation_units, text_elements, reconstruction_priorities, global_fingerprint, and spatial_dynamics'],
@@ -117,8 +121,9 @@ const contractChecks = [
   ['high-priority observations compile to English prompt', 'Every observation or reconstruction priority at 85 or higher must appear in en.prompt'],
   ['reconstruction tradeoffs are explicit', 'Use reconstruction_priorities to express visual tradeoffs'],
   ['visible text elements are structured', 'Use text_elements for visible text'],
-  ['English prompt is default UI prompt', 'en.prompt is the default UI generation prompt'],
-  ['English prompt can scale to reconstruction need', 'with no fixed word cap'],
+  ['generator handoff avoids reference-image wrapper requests', 'Do not use source image, reference image, or recreate this image as wrapper wording'],
+  ['exact visible source/reference words are allowed', 'If those words are exact legible visible text, quote-preserve them'],
+  ['English prompt can scale to reconstruction need', 'no fixed word cap'],
   ['dense sources can expand as needed', 'should expand as needed'],
   ['dense sources must not be over-compressed', 'Do not squeeze load-bearing structure into a generic archetype'],
   ['negative prompt is image-specific', 'negative_prompt is image-specific'],
@@ -126,7 +131,8 @@ const contractChecks = [
   ['source blur is not blocked globally', 'Do not put blur, grain, haze, bloom, low resolution'],
   ['soft-source blockers target polish drift', 'over-sharpened face, glossy AI skin, hyper-detailed eyes'],
   ['cleanliness guidance is conditional', 'For genuinely clean/smooth/high-clarity sources'],
-  ['generator syntax blocked', 'Do not include generator-specific syntax']
+  ['generator syntax blocked', 'Do not include generator-specific syntax'],
+  ['JSON generation prompt generator syntax blocked', 'json_prompt.generation_prompt, json_prompt.generation_negative_prompt']
 ];
 
 const forbiddenSystemPatterns = [
@@ -707,8 +713,18 @@ assert(!systemPrompt.includes('"recreation_prompt"'), 'system prompt should not 
 assert(systemPrompt.length >= 5200, 'system prompt is unexpectedly short for the fusion reconstruction contract.');
 assert(systemPrompt.length <= 15500, 'system prompt is too long; keep the runtime prompt compact enough for API use.');
 assert(!panelSource.includes('analysis[tab].prompt}\\n\\n${analysis[tab].analysis'), 'language tab output must not concatenate prompt and analysis.');
-assert(panelSource.includes('return analysis[tab].prompt;'), 'language tab output should display/copy only the prompt text.');
-assert(panelSource.includes('props.onOpenGenerator(siteId, analysis.en.prompt)'), 'generator handoff must use en.prompt as the primary recreation prompt.');
+assert(panelSource.includes("if (tab === 'en') return getGeneratorPrompt(analysis);"), 'English tab should display/copy the generator-safe prompt text.');
+assert(panelSource.includes("if (tab === 'json') return stringifyGeneratorJsonPrompt(analysis);"), 'JSON tab should display/copy generator-facing JSON prompt, not internal structured JSON.');
+assert(panelSource.includes('props.onOpenGenerator(siteId, generatorPrompt)'), 'generator handoff must use the generator-safe prompt.');
+assert(popupHistorySource.includes('stringifyGeneratorJsonPrompt(entry.analysis)'), 'popup history JSON copy should use generator-facing JSON prompt.');
+assert(historyDisplaySource.includes("setFilledGeneratorJsonField(output, 'prompt', getGeneratorPrompt(analysis));"), 'generator JSON prompt should put the generator-safe prompt first.');
+assert(historyDisplaySource.includes('analysis?.json_prompt?.generation_prompt'), 'generator prompt helper should use json_prompt.generation_prompt.');
+assert(
+  historyDisplaySource.indexOf('analysis?.json_prompt?.generation_prompt') < historyDisplaySource.indexOf('legacyAnalysis?.recreation_prompt'),
+  'generator prompt helper should prefer json_prompt.generation_prompt before legacy recreation_prompt.'
+);
+assert(historyDisplaySource.includes('source image'), 'generator prompt helper should strip source-image phrasing before handoff.');
+assert(historyDisplaySource.includes('reconstruction_v2'), 'generator prompt helper should strip schema tokens before handoff.');
 assert(!panelSource.includes('recreation_prompt'), 'panel should not depend on a duplicate recreation_prompt output field.');
 assert(panelSource.includes('isFilledJsonValue'), 'panel completeness should handle nested json_prompt v2 fields.');
 assert(imageDataSource.includes('ANALYSIS_MAX_IMAGE_SIDE = 3072'), 'analysis image max side should preserve more detail than the old 2200px cap.');
@@ -742,7 +758,7 @@ assert(realJsonAuditSource.includes('ZHIJUAN_JSON_FORBIDDEN_PROMPT'), 'real JSON
 assert(realJsonAuditSource.includes('forbiddenPromptAnchorsAbsent'), 'real JSON readiness audit should fail on wrong precise prompt anchors.');
 assert(realJsonAuditSource.includes('parsePromptAnalysis(analysis)'), 'real JSON readiness audit should re-parse existing audit files through current repair logic.');
 assert(installedAcceptanceSource.includes('chrome://extensions'), 'installed extension acceptance doc should tell the user where to refresh the extension.');
-assert(installedAcceptanceSource.includes('schema_version: "reconstruction_v2"'), 'installed extension acceptance doc should verify reconstruction_v2 output.');
+assert(installedAcceptanceSource.includes('starts with a top-level `prompt` field'), 'installed extension acceptance doc should verify generator-facing JSON prompt output.');
 assert(installedAcceptanceSource.includes('no Japanese output block'), 'installed extension acceptance doc should keep the no-hidden-Japanese gate.');
 assert(installedAcceptanceSource.includes('no duplicate `recreation_prompt` output'), 'installed extension acceptance doc should keep the duplicate prompt gate.');
 
